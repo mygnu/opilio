@@ -21,13 +21,21 @@ pub enum FanId {
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
+pub struct RpmData {
+    pub f1: f32,
+    pub f2: f32,
+    pub f3: f32,
+    pub f4: f32,
+}
+
+#[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
 pub struct Config {
     pub id: FanId,
-    enabled: bool,
-    min_duty: f32,
-    max_duty: f32,
-    min_temp: f32,
-    max_temp: f32,
+    pub enabled: bool,
+    pub min_duty: f32,
+    pub max_duty: f32,
+    pub min_temp: f32,
+    pub max_temp: f32,
 }
 
 impl Config {
@@ -59,7 +67,7 @@ impl Config {
 }
 
 #[derive(Format, Serialize, Deserialize, PartialEq)]
-enum Command {
+pub enum Command {
     SetConfig = 1,
     GetConfig = 2,
     SaveConfig = 3,
@@ -67,8 +75,60 @@ enum Command {
     GetRpm = 11,
 }
 
+#[derive(Format, Serialize, Deserialize, PartialEq)]
+pub enum Response {
+    Ok,
+    Error,
+}
+
 #[derive(Serialize, Deserialize)]
-struct SerialData {
+pub struct SerialData {
     command: Command,
     value: Vec<u8, 32>,
+}
+
+#[derive(Format, Deserialize, Serialize)]
+pub struct Configs {
+    pub data: Vec<Config, 4>,
+    pub persistent: bool,
+}
+
+impl Default for Configs {
+    fn default() -> Self {
+        let mut data: Vec<_, 4> = Vec::new();
+        data.push(Config::new(FanId::F1)).ok();
+        data.push(Config::new(FanId::F2)).ok();
+        data.push(Config::new(FanId::F3)).ok();
+        data.push(Config::new(FanId::F4)).ok();
+
+        Self {
+            data,
+            persistent: true,
+        }
+    }
+}
+
+impl AsRef<Vec<Config, 4>> for Configs {
+    fn as_ref(&self) -> &Vec<Config, 4> {
+        &self.data
+    }
+}
+
+impl Configs {
+    pub fn is_valid(&self) -> bool {
+        self.as_ref().iter().all(|c| c.is_valid())
+    }
+
+    pub fn set(&mut self, config: Config) {
+        for c in self.data.iter_mut() {
+            if c.id == config.id {
+                defmt::debug!("setting new config {:?}", config);
+                *c = config;
+                break;
+            }
+        }
+    }
+    pub fn get(&self, fan_id: FanId) -> Option<&Config> {
+        self.data.iter().find(|&&c| c.id == fan_id)
+    }
 }
