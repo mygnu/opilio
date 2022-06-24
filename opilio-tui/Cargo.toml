@@ -1,0 +1,12 @@
+[package]
+name = "opilio-tui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+crossterm = "0.23"
+serialport = "4.2"
+tui = "0.18"
