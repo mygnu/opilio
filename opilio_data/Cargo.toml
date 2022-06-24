@@ -1,5 +1,5 @@
 [package]
-name = "opilio-data"
+name = "opilio_data"
 version = "0.1.0"
 edition = "2021"
 

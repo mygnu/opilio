@@ -336,7 +336,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "opilio-data"
+name = "opilio_data"
 version = "0.1.0"
 dependencies = [
  "defmt",
@@ -346,7 +346,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "opilio-tui"
+name = "opilio_tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
