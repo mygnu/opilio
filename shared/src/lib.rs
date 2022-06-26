@@ -10,7 +10,14 @@ pub const MIN_DUTY_PERCENT: f32 = 10.0; // 10% usually when a pwm fan starts to 
 pub const MIN_TEMP: f32 = 15.0;
 pub const MAX_TEMP: f32 = 40.0;
 
-pub const CONFIG_SIZE: usize = core::mem::size_of::<Config>();
+pub const CONFIG_SIZE: usize = 18 + 1;
+pub const RPM_DATA_SIZE: usize = 16 + 1;
+pub const SERIAL_DATA_SIZE: usize = 34 + 1;
+
+pub const VID: u16 = 0x1209;
+pub const PID: u16 = 0x0010;
+
+pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum FanId {
@@ -26,6 +33,15 @@ pub struct RpmData {
     pub f2: f32,
     pub f3: f32,
     pub f4: f32,
+}
+
+impl RpmData {
+    pub fn from_bytes(slice: &[u8]) -> Result<Self> {
+        from_bytes(slice).map_err(Error::from)
+    }
+    pub fn to_vec(&self) -> Result<Vec<u8, RPM_DATA_SIZE>> {
+        to_vec(&self).map_err(Error::from)
+    }
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
@@ -50,8 +66,8 @@ impl Config {
         }
     }
 
-    pub fn from_bytes(slice: &[u8]) -> Option<Self> {
-        from_bytes(slice).ok()
+    pub fn from_bytes(slice: &[u8]) -> Result<Self> {
+        from_bytes(slice).map_err(Error::from)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -61,12 +77,12 @@ impl Config {
             && self.max_temp <= MAX_TEMP
     }
 
-    pub fn to_vec(&self) -> Option<Vec<u8, CONFIG_SIZE>> {
-        to_vec(&self).ok()
+    pub fn to_vec(&self) -> Result<Vec<u8, CONFIG_SIZE>> {
+        to_vec(&self).map_err(Error::from)
     }
 }
 
-#[derive(Format, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Format, Serialize, Deserialize, PartialEq)]
 pub enum Command {
     SetConfig = 1,
     GetConfig = 2,
@@ -81,10 +97,36 @@ pub enum Response {
     Error,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Format, Serialize, Deserialize, PartialEq)]
 pub struct SerialData {
     command: Command,
     value: Vec<u8, 32>,
+}
+
+impl SerialData {
+    pub fn new(command: Command) -> Self {
+        Self {
+            command,
+            value: Vec::new(),
+        }
+    }
+
+    pub fn data(mut self, value: Vec<u8, 32>) -> Self {
+        self.value = value;
+        self
+    }
+
+    pub fn value(self) -> Vec<u8, 32> {
+        self.value
+    }
+
+    pub fn to_vec(&self) -> Result<Vec<u8, SERIAL_DATA_SIZE>> {
+        to_vec(&self).map_err(Error::from)
+    }
+
+    pub fn from_bytes(slice: &[u8]) -> Result<Self> {
+        from_bytes(slice).map_err(Error::from)
+    }
 }
 
 #[derive(Format, Deserialize, Serialize)]
@@ -131,4 +173,50 @@ impl Configs {
     pub fn get(&self, fan_id: FanId) -> Option<&Config> {
         self.data.iter().find(|&&c| c.id == fan_id)
     }
+}
+
+#[derive(Debug, Format, Serialize, Deserialize, PartialEq)]
+pub enum Error {
+    Deserialize,
+    FlashErase,
+    FlashRead,
+    FlashWrite,
+    SerialRead,
+    SerialWrite,
+    Serialize,
+    Unknown,
+}
+
+impl From<postcard::Error> for Error {
+    fn from(e: postcard::Error) -> Self {
+        use postcard::Error::*;
+        match e {
+            DeserializeBadBool
+            | DeserializeBadChar
+            | DeserializeBadEncoding
+            | DeserializeBadEnum
+            | DeserializeBadOption
+            | DeserializeBadUtf8
+            | DeserializeBadVarint
+            | SerdeDeCustom => Self::Deserialize,
+            SerdeSerCustom
+            | SerializeBufferFull
+            | SerializeSeqLengthUnknown => Self::Serialize,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+mod std_impls {
+    extern crate std;
+    use std::{error::Error, fmt::Display};
+
+    impl Display for super::Error {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            write!(f, "{:?}", self)
+        }
+    }
+
+    impl Error for super::Error {}
 }

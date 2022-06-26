@@ -2,5 +2,5 @@
 
 members = [
     "opilio_tui",
-    "opilio_data",
+    "shared",
 ]

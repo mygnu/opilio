@@ -336,22 +336,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "opilio_data"
-version = "0.1.0"
-dependencies = [
- "defmt",
- "heapless",
- "postcard",
- "serde",
-]
-
-[[package]]
 name = "opilio_tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "crossterm",
+ "heapless",
+ "postcard",
  "serialport",
+ "shared",
  "tui",
 ]
 
@@ -568,6 +561,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "defmt",
+ "heapless",
+ "postcard",
+ "serde",
+]
+
+[[package]]
 name = "signal-hook"
 version = "0.3.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -599,9 +602,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2dd574626839106c320a323308629dcb1acfc96e32a8cba364ddc61ac23ee83"
+checksum = "cc88c725d61fc6c3132893370cac4a0200e3fedf5da8331c570664b1987f5ca2"
 
 [[package]]
 name = "spin"

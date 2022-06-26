@@ -8,5 +8,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 crossterm = "0.23"
+heapless = "0.7"
+postcard = "1.0"
+shared = { path = "../shared", features = ["std"]}
 serialport = "4.2"
 tui = "0.18"
