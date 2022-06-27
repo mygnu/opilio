@@ -6,7 +6,7 @@ use std::{
 use anyhow::{anyhow, Ok, Result};
 use postcard::to_vec;
 use serialport::{SerialPort, SerialPortType};
-use shared::{Command, Config, Error, FanId, RpmData, SerialData};
+use shared::{Command, Config, Error, FanId, OverWireCmd, RpmData};
 
 pub struct OpilioSerial {
     port: Box<dyn SerialPort>,
@@ -38,7 +38,7 @@ impl OpilioSerial {
     }
 
     pub fn get_rpm(&mut self) -> Result<RpmData> {
-        let cmd = SerialData::new(Command::GetRpm).to_vec()?;
+        let cmd = OverWireCmd::new(Command::GetRpm).to_vec()?;
         self.port.write(&cmd)?;
 
         let mut serial_buf = vec![0; 64];
@@ -49,7 +49,7 @@ impl OpilioSerial {
     }
 
     pub fn get_config(&mut self, fan_id: FanId) -> Result<Config> {
-        let cmd = SerialData::new(Command::GetConfig)
+        let cmd = OverWireCmd::new(Command::GetConfig)
             .data(to_vec(&fan_id).map_err(Error::from)?)
             .to_vec()?;
         self.port.write(&cmd)?;

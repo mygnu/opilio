@@ -98,12 +98,12 @@ pub enum Response {
 }
 
 #[derive(Debug, Format, Serialize, Deserialize, PartialEq)]
-pub struct SerialData {
+pub struct OverWireCmd {
     command: Command,
     value: Vec<u8, 32>,
 }
 
-impl SerialData {
+impl OverWireCmd {
     pub fn new(command: Command) -> Self {
         Self {
             command,
