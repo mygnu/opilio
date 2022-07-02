@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-crossterm = "0.23"
+crossterm = "0.24"
 fast_log = "1.5"
 heapless = "0.7"
 log = "0.4"
