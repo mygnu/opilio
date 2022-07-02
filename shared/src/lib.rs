@@ -11,7 +11,7 @@ pub const MIN_TEMP: f32 = 15.0;
 pub const MAX_TEMP: f32 = 40.0;
 
 pub const CONFIG_SIZE: usize = 18 + 1;
-pub const RPM_DATA_SIZE: usize = 16 + 1;
+pub const STATS_DATA_SIZE: usize = 20 + 1;
 pub const SERIAL_DATA_SIZE: usize = 34 + 1;
 
 pub const VID: u16 = 0x1209;
@@ -28,18 +28,19 @@ pub enum FanId {
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
-pub struct RpmData {
+pub struct Stats {
+    pub t1: f32,
     pub f1: f32,
     pub f2: f32,
     pub f3: f32,
     pub f4: f32,
 }
 
-impl RpmData {
+impl Stats {
     pub fn from_bytes(slice: &[u8]) -> Result<Self> {
         from_bytes(slice).map_err(Error::from)
     }
-    pub fn to_vec(&self) -> Result<Vec<u8, RPM_DATA_SIZE>> {
+    pub fn to_vec(&self) -> Result<Vec<u8, STATS_DATA_SIZE>> {
         to_vec(&self).map_err(Error::from)
     }
 }
@@ -87,8 +88,7 @@ pub enum Command {
     SetConfig = 1,
     GetConfig = 2,
     SaveConfig = 3,
-    GetTemp = 10,
-    GetRpm = 11,
+    GetStats = 4,
 }
 
 #[derive(Format, Serialize, Deserialize, PartialEq)]

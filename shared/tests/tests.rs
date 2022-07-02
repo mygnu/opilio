@@ -1,3 +1,4 @@
+use postcard::to_vec;
 use shared::*;
 
 #[test]
@@ -37,7 +38,8 @@ fn command_test() {
 
 #[test]
 fn command_rpm_data() {
-    let rpm_data = RpmData {
+    let rpm_data = Stats {
+        t1: 0.0,
         f1: 0.0,
         f2: 0.0,
         f3: 0.0,
@@ -48,9 +50,21 @@ fn command_rpm_data() {
 
     println!("{:?}", rpm_data);
     println!("{:?}, len: {}", data, data.len());
-    println!("{:?}", RPM_DATA_SIZE);
+    println!("{:?}", STATS_DATA_SIZE);
 
-    let result = RpmData::from_bytes(data.as_ref()).unwrap();
+    let result = Stats::from_bytes(data.as_ref()).unwrap();
 
     assert_eq!(rpm_data, result);
+}
+
+#[test]
+fn command_temp_data() {
+    let cmd = OverWireCmd::new(Command::GetStats);
+    println!("{:?}", cmd);
+    let vec = cmd.to_vec().unwrap();
+    println!("{:?}", vec);
+
+    let temp = 32.0_f32;
+    let bytes: heapless::Vec<u8, 32> = to_vec(&[temp]).unwrap();
+    println!("{:?}", bytes);
 }
