@@ -6,6 +6,11 @@ use shared::{PID, VID};
 
 mod serial_port;
 
+use std::{
+    fs, io,
+    time::{Duration, Instant},
+};
+
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -13,11 +18,6 @@ use crossterm::{
         disable_raw_mode, enable_raw_mode, EnterAlternateScreen,
         LeaveAlternateScreen,
     },
-};
-
-use std::{
-    fs, io,
-    time::{Duration, Instant},
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -55,14 +55,14 @@ struct App {
 }
 
 impl App {
-    fn new() -> App {
+    fn new() -> Result<App> {
         let fan1 = vec![(ZERO, ZERO)];
         let fan2 = vec![(ZERO, ZERO)];
         let fan3 = vec![(ZERO, ZERO)];
         let fan4 = vec![(ZERO, ZERO)];
         let temp = vec![(ZERO, ZERO)];
-        let opilio = OpilioSerial::new(VID, PID).unwrap();
-        App {
+        let opilio = OpilioSerial::new(VID, PID)?;
+        Ok(App {
             opilio,
             fan1,
             fan2,
@@ -73,7 +73,7 @@ impl App {
             current_temp: ZERO,
             current_rpms: [ZERO; 4],
             last_point: TIME_SPAN,
-        }
+        })
     }
 
     fn on_tick(&mut self) {
@@ -116,6 +116,7 @@ fn main() -> Result<()> {
     fs::write("target/test.log", "")?;
     fast_log::init(Config::new().file("target/test.log")).unwrap();
 
+    let app = App::new()?;
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -125,7 +126,6 @@ fn main() -> Result<()> {
 
     // create app and run it
     let tick_rate = Duration::from_millis(500);
-    let app = App::new();
     let res = run_app(&mut terminal, app, tick_rate);
 
     // restore terminal
@@ -148,7 +148,7 @@ fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     mut app: App,
     tick_rate: Duration,
-) -> io::Result<()> {
+) -> Result<()> {
     let mut last_tick = Instant::now();
     loop {
         terminal.draw(|f| ui(f, &app))?;
@@ -172,7 +172,7 @@ fn run_app<B: Backend>(
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let size = f.size();
-    let chunks = Layout::default()
+    let layout_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
@@ -183,69 +183,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         )
         .split(size);
 
-    let rpm_datasets = vec![
-        Dataset::default()
-            .name(format!("{:.1}", app.current_rpms[0]))
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Cyan))
-            .data(&app.fan1),
-        Dataset::default()
-            .name(format!("{:.1}", app.current_rpms[1]))
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Yellow))
-            .data(&app.fan2),
-        Dataset::default()
-            .name(format!("{:.1}", app.current_rpms[2]))
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Yellow))
-            .data(&app.fan2),
-        Dataset::default()
-            .name(format!("{:.1}", app.current_rpms[3]))
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Yellow))
-            .data(&app.fan2),
-    ];
+    let rpm_chart = rpm_chart(app);
+    f.render_widget(rpm_chart, layout_chunks[0]);
 
-    let rpm_charts = Chart::new(rpm_datasets)
-        .block(
-            Block::default()
-                .title(Span::styled(
-                    "Opilio",
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                ))
-                .borders(Borders::ALL),
-        )
-        .x_axis(
-            Axis::default()
-                // .title("X Axis")
-                .style(Style::default().fg(Color::Gray))
-                // .labels(x_labels)
-                .bounds(app.window),
-        )
-        .y_axis(
-            Axis::default()
-                .title("RPM")
-                .style(Style::default().fg(Color::Gray))
-                .labels(vec![
-                    Span::styled(
-                        format!("{:.0}", RPM_Y_AXIS_MIN),
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(
-                        format!("{:.0}", RPM_Y_AXIS_MAX),
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                ])
-                .bounds([RPM_Y_AXIS_MIN, RPM_Y_AXIS_MAX]),
-        );
-    f.render_widget(rpm_charts, chunks[0]);
+    let temp_chart = temp_chart(app);
+    f.render_widget(temp_chart, layout_chunks[1]);
+}
 
+fn temp_chart(app: &App) -> Chart {
     let temp_datasets = vec![Dataset::default()
         .name(format!("{:.2}°C", app.current_temp))
         .marker(symbols::Marker::Braille)
@@ -304,5 +249,69 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                     Span::raw(format!("{:.1}", TEMP_Y_AXIS_MAX)),
                 ]),
         );
-    f.render_widget(temp_chart, chunks[1]);
+    temp_chart
+}
+
+fn rpm_chart(app: &App) -> Chart {
+    let rpm_datasets = vec![
+        Dataset::default()
+            .name(format!("{:.1}", app.current_rpms[0]))
+            .marker(symbols::Marker::Braille)
+            .graph_type(GraphType::Line)
+            .style(Style::default().fg(Color::Cyan))
+            .data(&app.fan1),
+        Dataset::default()
+            .name(format!("{:.1}", app.current_rpms[1]))
+            .marker(symbols::Marker::Braille)
+            .graph_type(GraphType::Line)
+            .style(Style::default().fg(Color::Yellow))
+            .data(&app.fan2),
+        Dataset::default()
+            .name(format!("{:.1}", app.current_rpms[2]))
+            .marker(symbols::Marker::Braille)
+            .graph_type(GraphType::Line)
+            .style(Style::default().fg(Color::Yellow))
+            .data(&app.fan2),
+        Dataset::default()
+            .name(format!("{:.1}", app.current_rpms[3]))
+            .marker(symbols::Marker::Braille)
+            .graph_type(GraphType::Line)
+            .style(Style::default().fg(Color::Yellow))
+            .data(&app.fan2),
+    ];
+
+    Chart::new(rpm_datasets)
+        .block(
+            Block::default()
+                .title(Span::styled(
+                    "Opilio",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ))
+                .borders(Borders::ALL),
+        )
+        .x_axis(
+            Axis::default()
+                // .title("X Axis")
+                .style(Style::default().fg(Color::Gray))
+                // .labels(x_labels)
+                .bounds(app.window),
+        )
+        .y_axis(
+            Axis::default()
+                .title("RPM")
+                .style(Style::default().fg(Color::Gray))
+                .labels(vec![
+                    Span::styled(
+                        format!("{:.0}", RPM_Y_AXIS_MIN),
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        format!("{:.0}", RPM_Y_AXIS_MAX),
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                ])
+                .bounds([RPM_Y_AXIS_MIN, RPM_Y_AXIS_MAX]),
+        )
 }
