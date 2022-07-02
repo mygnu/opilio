@@ -5,5 +5,6 @@ WIP: desktop TUI client and USB serial driver for opilio
 Counter part board and firmware for this project lives [here](https://github.com/mygnu/opilio-firmware)
 
 
-https://user-images.githubusercontent.com/4723535/176998360-030e8d23-587c-4bd1-b580-60e1077c1599.mp4
 
+
+![opilio-tui](https://user-images.githubusercontent.com/4723535/176998413-72536b59-c93b-4af7-abf6-116d2a0f6484.gif)
