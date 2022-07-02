@@ -1,4 +1,5 @@
-use opilio_data::*;
+use postcard::to_vec;
+use shared::*;
 
 #[test]
 fn config_test() {
@@ -17,7 +18,7 @@ fn config_test() {
 
 #[test]
 fn command_test() {
-    let serial_data = SerialData::new(Command::GetConfig).data(
+    let serial_data = OverWireCmd::new(Command::GetConfig).data(
         heapless::Vec::from_slice(&[
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
             19, 20, 21, 22, 23, 24, 25, 26, 26, 28, 29, 30, 31,
@@ -30,14 +31,15 @@ fn command_test() {
     println!("{:?}, len: {}", data, data.len());
     println!("{:?}", SERIAL_DATA_SIZE);
 
-    let result = SerialData::from_bytes(data.as_ref()).unwrap();
+    let result = OverWireCmd::from_bytes(data.as_ref()).unwrap();
 
     assert_eq!(serial_data, result);
 }
 
 #[test]
 fn command_rpm_data() {
-    let rpm_data = RpmData {
+    let rpm_data = Stats {
+        t1: 0.0,
         f1: 0.0,
         f2: 0.0,
         f3: 0.0,
@@ -48,9 +50,21 @@ fn command_rpm_data() {
 
     println!("{:?}", rpm_data);
     println!("{:?}, len: {}", data, data.len());
-    println!("{:?}", RPM_DATA_SIZE);
+    println!("{:?}", STATS_DATA_SIZE);
 
-    let result = RpmData::from_bytes(data.as_ref()).unwrap();
+    let result = Stats::from_bytes(data.as_ref()).unwrap();
 
     assert_eq!(rpm_data, result);
+}
+
+#[test]
+fn command_temp_data() {
+    let cmd = OverWireCmd::new(Command::GetStats);
+    println!("{:?}", cmd);
+    let vec = cmd.to_vec().unwrap();
+    println!("{:?}", vec);
+
+    let temp = 32.0_f32;
+    let bytes: heapless::Vec<u8, 32> = to_vec(&[temp]).unwrap();
+    println!("{:?}", bytes);
 }
