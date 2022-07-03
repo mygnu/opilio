@@ -12,12 +12,34 @@ pub const MAX_TEMP: f32 = 40.0;
 
 pub const CONFIG_SIZE: usize = 18;
 pub const STATS_DATA_SIZE: usize = 20;
-pub const SERIAL_DATA_SIZE: usize = 34;
+pub const MAX_SERIAL_DATA_SIZE: usize = 64;
+pub const CMD_SERIAL_SIZE: usize = 1;
+pub const OVER_WIRE_DATA_SIZE: usize = MAX_SERIAL_DATA_SIZE - CMD_SERIAL_SIZE;
 
 pub const VID: u16 = 0x1209;
 pub const PID: u16 = 0x2442;
 
 pub type Result<T> = core::result::Result<T, Error>;
+
+#[derive(Debug, Copy, Clone, Format, Serialize, Deserialize, PartialEq)]
+pub enum Command {
+    SetConfig = 1,
+    GetConfig = 2,
+    SaveConfig = 3,
+    GetStats = 4,
+    Stats = 5,
+    Config = 6,
+    Result = 7,
+}
+
+#[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub enum OtwData {
+    FanId(FanId),
+    Config(Config),
+    Stats(Stats),
+    Result(Response),
+    Empty,
+}
 
 #[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum FanId {
@@ -29,20 +51,11 @@ pub enum FanId {
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
 pub struct Stats {
-    pub t1: f32,
-    pub f1: f32,
-    pub f2: f32,
-    pub f3: f32,
-    pub f4: f32,
-}
-
-impl Stats {
-    pub fn from_bytes(slice: &[u8]) -> Result<Self> {
-        from_bytes(slice).map_err(Error::from)
-    }
-    pub fn to_vec(&self) -> Result<Vec<u8, STATS_DATA_SIZE>> {
-        to_vec(&self).map_err(Error::from)
-    }
+    pub rpm1: f32,
+    pub rpm2: f32,
+    pub rpm3: f32,
+    pub rpm4: f32,
+    pub temp1: f32,
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
@@ -67,65 +80,69 @@ impl Config {
         }
     }
 
-    pub fn from_bytes(slice: &[u8]) -> Result<Self> {
-        from_bytes(slice).map_err(Error::from)
-    }
-
     pub fn is_valid(&self) -> bool {
         self.min_duty >= MIN_DUTY_PERCENT
             && self.max_duty <= MAX_DUTY_PERCENT
             && self.min_temp >= MIN_TEMP
             && self.max_temp <= MAX_TEMP
     }
-
-    pub fn to_vec(&self) -> Result<Vec<u8, CONFIG_SIZE>> {
-        to_vec(&self).map_err(Error::from)
-    }
 }
 
-#[derive(Debug, Format, Serialize, Deserialize, PartialEq)]
-pub enum Command {
-    SetConfig = 1,
-    GetConfig = 2,
-    SaveConfig = 3,
-    GetStats = 4,
-}
-
-#[derive(Format, Serialize, Deserialize, PartialEq)]
+#[derive(Format, Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum Response {
     Ok,
-    Error,
+    Error(Error),
 }
 
-#[derive(Debug, Format, Serialize, Deserialize, PartialEq)]
-pub struct OverWireCmd {
+#[derive(Debug, Format, Serialize, PartialEq)]
+pub struct OverTheWire {
     command: Command,
-    value: Vec<u8, 32>,
+    data: OtwData,
 }
 
-impl OverWireCmd {
-    pub fn new(command: Command) -> Self {
-        Self {
-            command,
-            value: Vec::new(),
+impl OverTheWire {
+    pub fn new(command: Command, data: OtwData) -> Result<Self> {
+        if match command {
+            Command::GetStats | Command::SaveConfig => {
+                matches!(data, OtwData::Empty)
+            }
+            Command::Config | Command::SetConfig => {
+                matches!(data, OtwData::Config(_))
+            }
+            Command::GetConfig => matches!(data, OtwData::FanId(_)),
+            Command::Result => matches!(data, OtwData::Result(_)),
+            Command::Stats => matches!(data, OtwData::Stats(_)),
+        } {
+            Ok(Self { command, data })
+        } else {
+            Err(Error::InvalidCmdDataPair)
         }
     }
 
-    pub fn data(mut self, value: Vec<u8, 32>) -> Self {
-        self.value = value;
-        self
+    pub fn data(self) -> OtwData {
+        self.data
+    }
+    pub fn command(&self) -> Command {
+        self.command
     }
 
-    pub fn value(self) -> Vec<u8, 32> {
-        self.value
-    }
-
-    pub fn to_vec(&self) -> Result<Vec<u8, SERIAL_DATA_SIZE>> {
+    pub fn to_vec(&self) -> Result<Vec<u8, MAX_SERIAL_DATA_SIZE>> {
         to_vec(&self).map_err(Error::from)
     }
 
     pub fn from_bytes(slice: &[u8]) -> Result<Self> {
-        from_bytes(slice).map_err(Error::from)
+        let command = from_bytes(slice)?;
+
+        let data = match command {
+            Command::Config | Command::SetConfig => {
+                OtwData::Config(from_bytes(&slice[2..])?)
+            }
+            Command::Stats => OtwData::Stats(from_bytes(&slice[2..])?),
+            Command::GetConfig => OtwData::FanId(from_bytes(&slice[2..])?),
+            Command::Result => OtwData::Result(from_bytes(&slice[2..])?),
+            Command::GetStats | Command::SaveConfig => OtwData::Empty,
+        };
+        Ok(Self { command, data })
     }
 }
 
@@ -175,7 +192,7 @@ impl Configs {
     }
 }
 
-#[derive(Debug, Format, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Copy, Clone, Format, Serialize, Deserialize, PartialEq)]
 pub enum Error {
     Deserialize,
     FlashErase,
@@ -184,6 +201,7 @@ pub enum Error {
     SerialRead,
     SerialWrite,
     Serialize,
+    InvalidCmdDataPair,
     Unknown,
 }
 

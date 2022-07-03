@@ -1,70 +1,113 @@
-use postcard::to_vec;
 use shared::*;
 
 #[test]
-fn config_test() {
-    let config = Config::new(FanId::F1);
-
-    let data = config.to_vec().unwrap();
-
-    println!("{:?}", config);
-    println!("{:?}, len: {}", data, data.len());
-    println!("{:?}", CONFIG_SIZE);
-
-    let result = Config::from_bytes(data.as_ref()).unwrap();
-
-    assert_eq!(config, result);
-}
-
-#[test]
-fn command_test() {
-    let serial_data = OverWireCmd::new(Command::GetConfig).data(
-        heapless::Vec::from_slice(&[
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-            19, 20, 21, 22, 23, 24, 25, 26, 26, 28, 29, 30, 31,
-        ])
-        .unwrap(),
-    );
-    let data = serial_data.to_vec().unwrap();
-
-    println!("{:?}", serial_data);
-    println!("{:?}, len: {}", data, data.len());
-    println!("{:?}", SERIAL_DATA_SIZE);
-
-    let result = OverWireCmd::from_bytes(data.as_ref()).unwrap();
-
-    assert_eq!(serial_data, result);
-}
-
-#[test]
-fn command_rpm_data() {
-    let rpm_data = Stats {
-        t1: 0.0,
-        f1: 0.0,
-        f2: 0.0,
-        f3: 0.0,
-        f4: 0.0,
-    };
-
-    let data = rpm_data.to_vec().unwrap();
-
-    println!("{:?}", rpm_data);
-    println!("{:?}, len: {}", data, data.len());
-    println!("{:?}", STATS_DATA_SIZE);
-
-    let result = Stats::from_bytes(data.as_ref()).unwrap();
-
-    assert_eq!(rpm_data, result);
-}
-
-#[test]
-fn command_temp_data() {
-    let cmd = OverWireCmd::new(Command::GetStats);
-    println!("{:?}", cmd);
-    let vec = cmd.to_vec().unwrap();
+fn test_empty_data() {
+    let otw = OverTheWire::new(Command::GetStats, OtwData::Empty).unwrap();
+    println!("{:?}", otw);
+    let vec = otw.to_vec().unwrap();
     println!("{:?}", vec);
+    let otwb = OverTheWire::from_bytes(&vec).unwrap();
+    assert_eq!(otw, otwb);
 
-    let temp = 32.0_f32;
-    let bytes: heapless::Vec<u8, 32> = to_vec(&[temp]).unwrap();
-    println!("{:?}", bytes);
+    let otw = OverTheWire::new(Command::SaveConfig, OtwData::Empty).unwrap();
+    println!("{:?}", otw);
+    let vec = otw.to_vec().unwrap();
+    println!("{:?}", vec);
+    let otwb = OverTheWire::from_bytes(&vec).unwrap();
+    assert_eq!(otw, otwb);
+}
+
+#[test]
+fn test_stats_data() {
+    let otw = OverTheWire::new(
+        Command::Stats,
+        OtwData::Stats(Stats {
+            rpm1: 2.0,
+            rpm2: 0.0,
+            rpm3: 1.0,
+            rpm4: 20.0,
+            temp1: 23.0,
+        }),
+    )
+    .unwrap();
+    println!("{:?}", otw);
+    let vec = otw.to_vec().unwrap();
+    println!("{:?}", vec);
+    let otwb = OverTheWire::from_bytes(&vec).unwrap();
+    assert_eq!(otw, otwb);
+
+    let otw = OverTheWire::new(
+        Command::Stats,
+        OtwData::Stats(Stats {
+            rpm1: 0.0,
+            rpm2: 0.0,
+            rpm3: 0.0,
+            rpm4: 0.0,
+            temp1: 0.1,
+        }),
+    )
+    .unwrap();
+
+    println!("{:?}", otw);
+    let vec = otw.to_vec().unwrap();
+    println!("{:?}", vec);
+    let otwb = OverTheWire::from_bytes(&vec).unwrap();
+    assert_eq!(otw, otwb);
+
+    let otw = OverTheWire::new(
+        Command::Stats,
+        OtwData::Stats(Stats {
+            rpm1: f32::MAX,
+            rpm2: f32::MAX,
+            rpm3: f32::MAX,
+            rpm4: f32::MAX,
+            temp1: f32::MAX,
+        }),
+    )
+    .unwrap();
+    println!("{:?}", otw);
+    let vec = otw.to_vec().unwrap();
+    println!("{:?}", vec);
+    let otwb = OverTheWire::from_bytes(&vec).unwrap();
+    assert_eq!(otw, otwb);
+}
+
+#[test]
+fn test_config_data() {
+    let otw = OverTheWire::new(
+        Command::Config,
+        OtwData::Config(Config {
+            id: FanId::F1,
+            min_temp: 0.0,
+            max_temp: 1.0,
+            min_duty: 20.0,
+            max_duty: 23.0,
+            enabled: false,
+        }),
+    )
+    .unwrap();
+    println!("{:?}", otw);
+    let vec = otw.to_vec().unwrap();
+    println!("{:?}", vec);
+    let otwb = OverTheWire::from_bytes(&vec).unwrap();
+    assert_eq!(otw, otwb);
+
+    let otw = OverTheWire::new(
+        Command::Config,
+        OtwData::Config(Config {
+            id: FanId::F1,
+            min_temp: f32::MAX,
+            max_temp: f32::MAX,
+            min_duty: f32::MAX,
+            max_duty: f32::MAX,
+            enabled: false,
+        }),
+    )
+    .unwrap();
+    println!("{:?}", otw);
+    let vec = otw.to_vec().unwrap();
+    assert!(vec.len() <= MAX_SERIAL_DATA_SIZE);
+    println!("{:?}", vec);
+    let otwb = OverTheWire::from_bytes(&vec).unwrap();
+    assert_eq!(otw, otwb);
 }

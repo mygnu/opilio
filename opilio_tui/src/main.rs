@@ -91,12 +91,12 @@ impl App {
         self.last_point += TICK_DISTANCE;
         match self.opilio.get_stats() {
             Ok(stats) => {
-                self.current_temp = stats.t1 as f64;
+                self.current_temp = stats.temp1 as f64;
                 self.current_rpms = [
-                    stats.f1 as f64,
-                    stats.f2 as f64,
-                    stats.f3 as f64,
-                    stats.f4 as f64,
+                    stats.rpm1 as f64,
+                    stats.rpm2 as f64,
+                    stats.rpm3 as f64,
+                    stats.rpm4 as f64,
                 ];
             }
             Err(e) => {
