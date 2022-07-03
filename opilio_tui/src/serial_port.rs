@@ -6,9 +6,7 @@ use std::{
 use anyhow::{anyhow, bail, Ok, Result};
 use log::info;
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
-use shared::{
-    Command, Config, FanId, OtwData, OverTheWire, Stats, MAX_SERIAL_DATA_SIZE,
-};
+use shared::{Cmd, Config, Data, FanId, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 
 pub struct OpilioSerial {
     vid: u16,
@@ -25,35 +23,38 @@ impl OpilioSerial {
     pub fn get_stats(&mut self) -> Result<Stats> {
         self.clear_buffers()?;
 
-        let cmd =
-            OverTheWire::new(Command::GetStats, OtwData::Empty)?.to_vec()?;
+        let cmd = OTW::new(Cmd::GetStats, Data::Empty)?.to_vec()?;
         self.port.write_all(&cmd)?;
 
         let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
-        self.port.read(buffer.as_mut_slice())?;
+
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
+        }
 
         info!("data over serial: {:?}", buffer);
 
-        let data = OverTheWire::from_bytes(&buffer)?;
+        let data = OTW::from_bytes(&buffer)?;
         info!("Received {:?}", data);
         match data.data() {
-            OtwData::Stats(s) => Ok(s),
+            Data::Stats(s) => Ok(s),
             _ => bail!("Failed to get data"),
         }
     }
 
     pub fn get_config(&mut self, fan_id: FanId) -> Result<Config> {
         self.clear_buffers()?;
-        let cmd = OverTheWire::new(Command::GetConfig, OtwData::FanId(fan_id))?
-            .to_vec()?;
+        let cmd = OTW::new(Cmd::GetConfig, Data::FanId(fan_id))?.to_vec()?;
         self.port.write_all(&cmd)?;
 
         let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
 
-        self.port.read(buffer.as_mut_slice())?;
-        let data = OverTheWire::from_bytes(&buffer)?;
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
+        }
+        let data = OTW::from_bytes(&buffer)?;
         match data.data() {
-            OtwData::Config(s) => Ok(s),
+            Data::Config(s) => Ok(s),
             _ => bail!("Failed to get data"),
         }
     }

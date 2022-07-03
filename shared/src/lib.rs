@@ -1,8 +1,10 @@
 #![no_std]
 
 use defmt::Format;
+use error::Error;
 use heapless::Vec;
-use postcard::{from_bytes, to_vec};
+pub use otw::OTW;
+
 use serde::{Deserialize, Serialize};
 
 pub const MAX_DUTY_PERCENT: f32 = 100.0;
@@ -19,10 +21,13 @@ pub const OVER_WIRE_DATA_SIZE: usize = MAX_SERIAL_DATA_SIZE - CMD_SERIAL_SIZE;
 pub const VID: u16 = 0x1209;
 pub const PID: u16 = 0x2442;
 
+pub mod error;
+pub mod otw;
+
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, Copy, Clone, Format, Serialize, Deserialize, PartialEq)]
-pub enum Command {
+pub enum Cmd {
     SetConfig = 1,
     GetConfig = 2,
     SaveConfig = 3,
@@ -33,7 +38,7 @@ pub enum Command {
 }
 
 #[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub enum OtwData {
+pub enum Data {
     FanId(FanId),
     Config(Config),
     Stats(Stats),
@@ -94,58 +99,6 @@ pub enum Response {
     Error(Error),
 }
 
-#[derive(Debug, Format, Serialize, PartialEq)]
-pub struct OverTheWire {
-    command: Command,
-    data: OtwData,
-}
-
-impl OverTheWire {
-    pub fn new(command: Command, data: OtwData) -> Result<Self> {
-        if match command {
-            Command::GetStats | Command::SaveConfig => {
-                matches!(data, OtwData::Empty)
-            }
-            Command::Config | Command::SetConfig => {
-                matches!(data, OtwData::Config(_))
-            }
-            Command::GetConfig => matches!(data, OtwData::FanId(_)),
-            Command::Result => matches!(data, OtwData::Result(_)),
-            Command::Stats => matches!(data, OtwData::Stats(_)),
-        } {
-            Ok(Self { command, data })
-        } else {
-            Err(Error::InvalidCmdDataPair)
-        }
-    }
-
-    pub fn data(self) -> OtwData {
-        self.data
-    }
-    pub fn command(&self) -> Command {
-        self.command
-    }
-
-    pub fn to_vec(&self) -> Result<Vec<u8, MAX_SERIAL_DATA_SIZE>> {
-        to_vec(&self).map_err(Error::from)
-    }
-
-    pub fn from_bytes(slice: &[u8]) -> Result<Self> {
-        let command = from_bytes(slice)?;
-
-        let data = match command {
-            Command::Config | Command::SetConfig => {
-                OtwData::Config(from_bytes(&slice[2..])?)
-            }
-            Command::Stats => OtwData::Stats(from_bytes(&slice[2..])?),
-            Command::GetConfig => OtwData::FanId(from_bytes(&slice[2..])?),
-            Command::Result => OtwData::Result(from_bytes(&slice[2..])?),
-            Command::GetStats | Command::SaveConfig => OtwData::Empty,
-        };
-        Ok(Self { command, data })
-    }
-}
-
 #[derive(Format, Deserialize, Serialize)]
 pub struct Configs {
     pub data: Vec<Config, 4>,
@@ -190,51 +143,4 @@ impl Configs {
     pub fn get(&self, fan_id: FanId) -> Option<&Config> {
         self.data.iter().find(|&&c| c.id == fan_id)
     }
-}
-
-#[derive(Debug, Copy, Clone, Format, Serialize, Deserialize, PartialEq)]
-pub enum Error {
-    Deserialize,
-    FlashErase,
-    FlashRead,
-    FlashWrite,
-    SerialRead,
-    SerialWrite,
-    Serialize,
-    InvalidCmdDataPair,
-    Unknown,
-}
-
-impl From<postcard::Error> for Error {
-    fn from(e: postcard::Error) -> Self {
-        use postcard::Error::*;
-        match e {
-            DeserializeBadBool
-            | DeserializeBadChar
-            | DeserializeBadEncoding
-            | DeserializeBadEnum
-            | DeserializeBadOption
-            | DeserializeBadUtf8
-            | DeserializeBadVarint
-            | SerdeDeCustom => Self::Deserialize,
-            SerdeSerCustom
-            | SerializeBufferFull
-            | SerializeSeqLengthUnknown => Self::Serialize,
-            _ => Self::Unknown,
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-mod std_impls {
-    extern crate std;
-    use std::{error::Error, fmt::Display};
-
-    impl Display for super::Error {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            write!(f, "{:?}", self)
-        }
-    }
-
-    impl Error for super::Error {}
 }
