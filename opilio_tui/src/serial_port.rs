@@ -7,8 +7,7 @@ use anyhow::{anyhow, bail, Ok, Result};
 use log::info;
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
 use shared::{
-    Command, Config, FanId, OtwData, OverTheWire, Stats, CONFIG_SIZE,
-    MAX_SERIAL_DATA_SIZE, STATS_DATA_SIZE,
+    Command, Config, FanId, OtwData, OverTheWire, Stats, MAX_SERIAL_DATA_SIZE,
 };
 
 pub struct OpilioSerial {
