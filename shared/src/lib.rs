@@ -10,12 +10,12 @@ pub const MIN_DUTY_PERCENT: f32 = 10.0; // 10% usually when a pwm fan starts to 
 pub const MIN_TEMP: f32 = 15.0;
 pub const MAX_TEMP: f32 = 40.0;
 
-pub const CONFIG_SIZE: usize = 18 + 1;
-pub const STATS_DATA_SIZE: usize = 20 + 1;
-pub const SERIAL_DATA_SIZE: usize = 34 + 1;
+pub const CONFIG_SIZE: usize = 18;
+pub const STATS_DATA_SIZE: usize = 20;
+pub const SERIAL_DATA_SIZE: usize = 34;
 
 pub const VID: u16 = 0x1209;
-pub const PID: u16 = 0x0010;
+pub const PID: u16 = 0x2442;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
