@@ -101,6 +101,9 @@ impl App {
             }
             Err(e) => {
                 log::error!("{:?}", e);
+                // no reading but graph is still ticking
+                self.current_temp = ZERO;
+                self.current_rpms = [ZERO, ZERO, ZERO, ZERO];
             }
         };
 
