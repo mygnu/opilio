@@ -4,7 +4,6 @@ use defmt::Format;
 use error::Error;
 use heapless::Vec;
 pub use otw::OTW;
-
 use serde::{Deserialize, Serialize};
 
 pub const MAX_DUTY_PERCENT: f32 = 100.0;
