@@ -2,6 +2,12 @@ use crate::serial_port::OpilioSerial;
 use anyhow::Result;
 
 use shared::{PID, VID};
+use tui::{
+    style::{Color, Modifier, Style},
+    symbols,
+    text::Span,
+    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType},
+};
 
 pub const TIME_SPAN: f64 = 60.0;
 pub const TICK_DISTANCE: f64 = 0.5;
@@ -17,16 +23,16 @@ pub const TEMP_Y_AXIS_MIN: f64 = 10.0;
 pub const TEMP_Y_AXIS_MAX: f64 = 40.0;
 
 pub struct App {
-    pub opilio: OpilioSerial,
-    pub last_point: f64,
-    pub temp: Vec<(f64, f64)>,
-    pub fan1: Vec<(f64, f64)>,
-    pub fan2: Vec<(f64, f64)>,
-    pub fan3: Vec<(f64, f64)>,
-    pub fan4: Vec<(f64, f64)>,
-    pub window: [f64; 2],
-    pub current_temp: f64,
-    pub current_rpms: [f64; 4],
+    opilio: OpilioSerial,
+    last_point: f64,
+    temp: Vec<(f64, f64)>,
+    fan1: Vec<(f64, f64)>,
+    fan2: Vec<(f64, f64)>,
+    fan3: Vec<(f64, f64)>,
+    fan4: Vec<(f64, f64)>,
+    window: [f64; 2],
+    current_temp: f64,
+    current_rpms: [f64; 4],
 }
 
 impl App {
@@ -89,5 +95,131 @@ impl App {
         self.fan3.push((self.last_point, self.current_rpms[2]));
         self.fan4.push((self.last_point, self.current_rpms[3]));
         self.temp.push((self.last_point, self.current_temp));
+    }
+
+    pub fn temp_chart(&self) -> Chart {
+        let temp_datasets = vec![Dataset::default()
+            .name(format!("{:.2}°C", self.current_temp))
+            .marker(symbols::Marker::Braille)
+            .style(Style::default().fg(Color::Yellow))
+            .graph_type(GraphType::Line)
+            .data(&self.temp)];
+        let temp_chart = Chart::new(temp_datasets)
+            .block(
+                Block::default()
+                    .title(Span::styled(
+                        "Thermistor",
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ))
+                    .borders(Borders::ALL),
+            )
+            .x_axis(
+                Axis::default()
+                    .style(Style::default().fg(Color::Gray))
+                    .bounds(self.window)
+                    .labels(vec![
+                        Span::styled(
+                            "60s",
+                            Style::default().add_modifier(Modifier::BOLD),
+                        ),
+                        Span::raw("30s"),
+                        Span::styled(
+                            "0s",
+                            Style::default().add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+            )
+            .y_axis(
+                Axis::default()
+                    .title("°C")
+                    .style(Style::default().fg(Color::Gray))
+                    .bounds([TEMP_Y_AXIS_MIN, TEMP_Y_AXIS_MAX])
+                    .labels(vec![
+                        Span::raw(format!("{:.1}", TEMP_Y_AXIS_MIN)),
+                        Span::raw(format!(
+                            "{:.1}",
+                            ((TEMP_Y_AXIS_MAX - TEMP_Y_AXIS_MIN) * 0.25)
+                                + TEMP_Y_AXIS_MIN
+                        )),
+                        Span::raw(format!(
+                            "{:.1}",
+                            ((TEMP_Y_AXIS_MAX - TEMP_Y_AXIS_MIN) * 0.50)
+                                + TEMP_Y_AXIS_MIN
+                        )),
+                        Span::raw(format!(
+                            "{:.1}",
+                            ((TEMP_Y_AXIS_MAX - TEMP_Y_AXIS_MIN) * 0.75)
+                                + TEMP_Y_AXIS_MIN
+                        )),
+                        Span::raw(format!("{:.1}", TEMP_Y_AXIS_MAX)),
+                    ]),
+            );
+        temp_chart
+    }
+
+    pub fn rpm_chart(&self) -> Chart {
+        let rpm_datasets = vec![
+            Dataset::default()
+                .name(format!("{:.1}", self.current_rpms[0]))
+                .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
+                .style(Style::default().fg(Color::Cyan))
+                .data(&self.fan1),
+            Dataset::default()
+                .name(format!("{:.1}", self.current_rpms[1]))
+                .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
+                .style(Style::default().fg(Color::Yellow))
+                .data(&self.fan2),
+            Dataset::default()
+                .name(format!("{:.1}", self.current_rpms[2]))
+                .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
+                .style(Style::default().fg(Color::Yellow))
+                .data(&self.fan2),
+            Dataset::default()
+                .name(format!("{:.1}", self.current_rpms[3]))
+                .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
+                .style(Style::default().fg(Color::Yellow))
+                .data(&self.fan2),
+        ];
+
+        Chart::new(rpm_datasets)
+            .block(
+                Block::default()
+                    .title(Span::styled(
+                        "Opilio",
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ))
+                    .borders(Borders::ALL),
+            )
+            .x_axis(
+                Axis::default()
+                    // .title("X Axis")
+                    .style(Style::default().fg(Color::Gray))
+                    // .labels(x_labels)
+                    .bounds(self.window),
+            )
+            .y_axis(
+                Axis::default()
+                    .title("RPM")
+                    .style(Style::default().fg(Color::Gray))
+                    .labels(vec![
+                        Span::styled(
+                            format!("{:.0}", RPM_Y_AXIS_MIN),
+                            Style::default().add_modifier(Modifier::BOLD),
+                        ),
+                        Span::styled(
+                            format!("{:.0}", RPM_Y_AXIS_MAX),
+                            Style::default().add_modifier(Modifier::BOLD),
+                        ),
+                    ])
+                    .bounds([RPM_Y_AXIS_MIN, RPM_Y_AXIS_MAX]),
+            )
     }
 }

@@ -1,8 +1,5 @@
 use anyhow::Result;
-use app::{
-    App, RPM_CHART_RATIO, RPM_Y_AXIS_MAX, RPM_Y_AXIS_MIN, TEMP_CHART_RATIO,
-    TEMP_Y_AXIS_MAX, TEMP_Y_AXIS_MIN,
-};
+use app::{App, RPM_CHART_RATIO, TEMP_CHART_RATIO};
 use fast_log::Config;
 use log::error;
 
@@ -25,10 +22,6 @@ use crossterm::{
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    symbols,
-    text::Span,
-    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType},
     Frame, Terminal,
 };
 
@@ -103,135 +96,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         )
         .split(size);
 
-    let rpm_chart = rpm_chart(app);
+    let rpm_chart = app.rpm_chart();
     f.render_widget(rpm_chart, layout_chunks[0]);
 
-    let temp_chart = temp_chart(app);
+    let temp_chart = app.temp_chart();
     f.render_widget(temp_chart, layout_chunks[1]);
-}
-
-fn temp_chart(app: &App) -> Chart {
-    let temp_datasets = vec![Dataset::default()
-        .name(format!("{:.2}°C", app.current_temp))
-        .marker(symbols::Marker::Braille)
-        .style(Style::default().fg(Color::Yellow))
-        .graph_type(GraphType::Line)
-        .data(&app.temp)];
-    let temp_chart = Chart::new(temp_datasets)
-        .block(
-            Block::default()
-                .title(Span::styled(
-                    "Thermistor",
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                ))
-                .borders(Borders::ALL),
-        )
-        .x_axis(
-            Axis::default()
-                .style(Style::default().fg(Color::Gray))
-                .bounds(app.window)
-                .labels(vec![
-                    Span::styled(
-                        "60s",
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                    Span::raw("30s"),
-                    Span::styled(
-                        "0s",
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                ]),
-        )
-        .y_axis(
-            Axis::default()
-                .title("°C")
-                .style(Style::default().fg(Color::Gray))
-                .bounds([TEMP_Y_AXIS_MIN, TEMP_Y_AXIS_MAX])
-                .labels(vec![
-                    Span::raw(format!("{:.1}", TEMP_Y_AXIS_MIN)),
-                    Span::raw(format!(
-                        "{:.1}",
-                        ((TEMP_Y_AXIS_MAX - TEMP_Y_AXIS_MIN) * 0.25)
-                            + TEMP_Y_AXIS_MIN
-                    )),
-                    Span::raw(format!(
-                        "{:.1}",
-                        ((TEMP_Y_AXIS_MAX - TEMP_Y_AXIS_MIN) * 0.50)
-                            + TEMP_Y_AXIS_MIN
-                    )),
-                    Span::raw(format!(
-                        "{:.1}",
-                        ((TEMP_Y_AXIS_MAX - TEMP_Y_AXIS_MIN) * 0.75)
-                            + TEMP_Y_AXIS_MIN
-                    )),
-                    Span::raw(format!("{:.1}", TEMP_Y_AXIS_MAX)),
-                ]),
-        );
-    temp_chart
-}
-
-fn rpm_chart(app: &App) -> Chart {
-    let rpm_datasets = vec![
-        Dataset::default()
-            .name(format!("{:.1}", app.current_rpms[0]))
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Cyan))
-            .data(&app.fan1),
-        Dataset::default()
-            .name(format!("{:.1}", app.current_rpms[1]))
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Yellow))
-            .data(&app.fan2),
-        Dataset::default()
-            .name(format!("{:.1}", app.current_rpms[2]))
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Yellow))
-            .data(&app.fan2),
-        Dataset::default()
-            .name(format!("{:.1}", app.current_rpms[3]))
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Yellow))
-            .data(&app.fan2),
-    ];
-
-    Chart::new(rpm_datasets)
-        .block(
-            Block::default()
-                .title(Span::styled(
-                    "Opilio",
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                ))
-                .borders(Borders::ALL),
-        )
-        .x_axis(
-            Axis::default()
-                // .title("X Axis")
-                .style(Style::default().fg(Color::Gray))
-                // .labels(x_labels)
-                .bounds(app.window),
-        )
-        .y_axis(
-            Axis::default()
-                .title("RPM")
-                .style(Style::default().fg(Color::Gray))
-                .labels(vec![
-                    Span::styled(
-                        format!("{:.0}", RPM_Y_AXIS_MIN),
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(
-                        format!("{:.0}", RPM_Y_AXIS_MAX),
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                ])
-                .bounds([RPM_Y_AXIS_MIN, RPM_Y_AXIS_MAX]),
-        )
 }
