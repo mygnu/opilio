@@ -1,5 +1,5 @@
 use anyhow::Result;
-use app::{App, RPM_CHART_RATIO, TEMP_CHART_RATIO};
+use app::App;
 use fast_log::Config;
 use log::error;
 
@@ -25,9 +25,11 @@ use tui::{
     Frame, Terminal,
 };
 
+use crate::app::InputMode;
+
 fn main() -> Result<()> {
-    fs::write("target/test.log", "")?;
-    fast_log::init(Config::new().file("target/test.log")).unwrap();
+    fs::write("opilio.log", "")?;
+    fast_log::init(Config::new().file("opilio.log")).unwrap();
 
     let app = App::new()?;
     // setup terminal
@@ -71,8 +73,11 @@ fn run_app<B: Backend>(
             .unwrap_or_else(|| Duration::from_secs(0));
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                if let KeyCode::Char('q') = key.code {
-                    return Ok(());
+                match key.code {
+                    KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('h') => app.input_mode = InputMode::Help,
+                    KeyCode::Esc => app.input_mode = InputMode::Normal,
+                    _ => (),
                 }
             }
         }
@@ -84,21 +89,24 @@ fn run_app<B: Backend>(
 }
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
-    let size = f.size();
     let layout_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Percentage(RPM_CHART_RATIO),
-                Constraint::Percentage(TEMP_CHART_RATIO),
+                Constraint::Length(30),
+                Constraint::Length(20),
+                Constraint::Length(2),
             ]
             .as_ref(),
         )
-        .split(size);
+        .split(f.size());
 
     let rpm_chart = app.rpm_chart();
     f.render_widget(rpm_chart, layout_chunks[0]);
 
     let temp_chart = app.temp_chart();
     f.render_widget(temp_chart, layout_chunks[1]);
+
+    let info_block = app.info_block();
+    f.render_widget(info_block, layout_chunks[2]);
 }

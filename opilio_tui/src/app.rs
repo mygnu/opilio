@@ -5,22 +5,27 @@ use shared::{PID, VID};
 use tui::{
     style::{Color, Modifier, Style},
     symbols,
-    text::Span,
-    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType},
+    text::{Span, Spans, Text},
+    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
 };
 
-pub const TIME_SPAN: f64 = 60.0;
-pub const TICK_DISTANCE: f64 = 0.5;
-pub const TICKS_OVER_TIME: usize = (TIME_SPAN / TICK_DISTANCE) as usize;
-pub const ZERO: f64 = 0.0;
-pub const RPM_CHART_RATIO: u16 = 60;
-pub const TEMP_CHART_RATIO: u16 = 40;
+const TIME_SPAN: f64 = 60.0;
+const TICK_DISTANCE: f64 = 0.5;
+const TICKS_OVER_TIME: usize = (TIME_SPAN / TICK_DISTANCE) as usize;
+const ZERO: f64 = 0.0;
 
-pub const RPM_Y_AXIS_MIN: f64 = 200.0;
-pub const RPM_Y_AXIS_MAX: f64 = 2500.0;
+const RPM_Y_AXIS_MIN: f64 = 200.0;
+const RPM_Y_AXIS_MAX: f64 = 2500.0;
 
-pub const TEMP_Y_AXIS_MIN: f64 = 10.0;
-pub const TEMP_Y_AXIS_MAX: f64 = 40.0;
+const TEMP_Y_AXIS_MIN: f64 = 10.0;
+const TEMP_Y_AXIS_MAX: f64 = 40.0;
+
+#[derive(Default)]
+pub enum InputMode {
+    #[default]
+    Normal,
+    Help,
+}
 
 pub struct App {
     opilio: OpilioSerial,
@@ -33,6 +38,7 @@ pub struct App {
     window: [f64; 2],
     current_temp: f64,
     current_rpms: [f64; 4],
+    pub input_mode: InputMode,
 }
 
 impl App {
@@ -54,6 +60,7 @@ impl App {
             current_temp: ZERO,
             current_rpms: [ZERO; 4],
             last_point: TIME_SPAN,
+            input_mode: InputMode::default(),
         })
     }
 
@@ -221,5 +228,70 @@ impl App {
                     ])
                     .bounds([RPM_Y_AXIS_MIN, RPM_Y_AXIS_MAX]),
             )
+    }
+
+    pub fn info_block(&self) -> Paragraph {
+        let (msg, style) = match self.input_mode {
+            InputMode::Normal => (
+                vec![
+                    Span::raw("Commands: "),
+                    Span::styled(
+                        "q",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Yellow),
+                    ),
+                    Span::raw("uit, "),
+                    Span::styled(
+                        "u",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Yellow),
+                    ),
+                    Span::raw("pload config, "),
+                    Span::styled(
+                        "s",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Yellow),
+                    ),
+                    Span::raw("ave, "),
+                    Span::styled(
+                        "t",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Yellow),
+                    ),
+                    Span::raw("oggle persistent, "),
+                    Span::styled(
+                        "h",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Yellow),
+                    ),
+                    Span::raw("elp."),
+                ],
+                Style::default().add_modifier(Modifier::SLOW_BLINK),
+            ),
+            InputMode::Help => (
+                vec![
+                    Span::raw("Press "),
+                    Span::styled(
+                        "Esc",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw(" to stop editing, "),
+                    Span::styled(
+                        "Enter",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw(" to record the message"),
+                ],
+                Style::default(),
+            ),
+        };
+        let mut text = Text::from(Spans::from(msg));
+        text.patch_style(style);
+        Paragraph::new(text)
     }
 }
