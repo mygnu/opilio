@@ -1,4 +1,4 @@
-use shared::*;
+use common::*;
 
 #[test]
 fn should_serde_empty_data() {

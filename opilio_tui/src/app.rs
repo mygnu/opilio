@@ -1,13 +1,13 @@
-use crate::serial_port::OpilioSerial;
 use anyhow::Result;
-
-use shared::{PID, VID};
+use common::{PID, VID};
 use tui::{
     style::{Color, Modifier, Style},
     symbols,
     text::{Span, Spans, Text},
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
 };
+
+use crate::serial_port::OpilioSerial;
 
 const TIME_SPAN: f64 = 60.0;
 const TICK_DISTANCE: f64 = 0.5;
@@ -241,7 +241,7 @@ impl App {
                             .add_modifier(Modifier::BOLD)
                             .fg(Color::Yellow),
                     ),
-                    Span::raw("uit, "),
+                    Span::raw("uit to daemon, "),
                     Span::styled(
                         "u",
                         Style::default()
@@ -263,6 +263,13 @@ impl App {
                             .fg(Color::Yellow),
                     ),
                     Span::raw("oggle persistent, "),
+                    Span::styled(
+                        "k",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Yellow),
+                    ),
+                    Span::raw("ill, "),
                     Span::styled(
                         "h",
                         Style::default()

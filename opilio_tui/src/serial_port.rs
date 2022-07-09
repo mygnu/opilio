@@ -4,9 +4,9 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Ok, Result};
+use common::{Cmd, Config, Data, FanId, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 use log::info;
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
-use shared::{Cmd, Config, Data, FanId, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 
 pub struct OpilioSerial {
     vid: u16,

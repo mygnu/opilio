@@ -13,8 +13,11 @@ heapless = "0.7"
 log = "0.4"
 postcard = "1.0"
 serialport = "4.2"
-shared = { path = "../shared", features = ["std"]}
+common = { path = "../common", features = ["std"]}
 tui = "0.18"
+daemonize-me = "2.0"
+nix = "0.24"
+
 
 [[bin]]
 name = "opilio"
