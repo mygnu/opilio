@@ -186,3 +186,26 @@ fn should_serde_standby() {
     let otwb = OTW::from_bytes(&vec).unwrap();
     assert_eq!(otw, otwb);
 }
+
+#[test]
+fn should_serde_configs() {
+    let mut configs = Configs::default();
+    println!("{:?}", configs);
+    let vec = configs.to_vec().unwrap();
+    println!("{}\n {:?}", vec.len(), vec);
+    let res = Configs::from_bytes(&vec).unwrap();
+    assert_eq!(res, configs);
+    configs.data[0] = Config {
+        id: FanId::F1,
+        min_temp: 0.0,
+        max_temp: 0.0,
+        min_duty: 0.0,
+        max_duty: 0.0,
+        enabled: false,
+    };
+    println!("{:?}", configs);
+    let vec = configs.to_vec().unwrap();
+    println!("{}\n {:?}", vec.len(), vec);
+    let res = Configs::from_bytes(&vec).unwrap();
+    assert_eq!(res, configs);
+}

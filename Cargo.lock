@@ -99,12 +99,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df8670b8c7b9dae1793364eafadf7239c40d669904660c5960d74cfd80b46a53"
 
 [[package]]
-name = "cc"
-version = "1.0.73"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fff2a6927b3bb87f9595d67196a70493f627687a71d87a0d692242c33f58c11"
-
-[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -275,17 +269,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "daemonize-me"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b79373c44d0d32d795b1a29b5ecba172639d3db9826cc3db387833079bcf38b0"
-dependencies = [
- "libc",
- "nix 0.23.1",
- "thiserror",
-]
-
-[[package]]
 name = "defmt"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -326,9 +309,9 @@ dependencies = [
 
 [[package]]
 name = "fast_log"
-version = "1.5.17"
+version = "1.5.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a24e9b899d3b7f68309b2630db0c242ff0cce633f58c5b814c34e009c1c7efb"
+checksum = "40105f83248b9dab4ae54307b72f00ffed7a742ec2c03b803466f98216ffa1e6"
 dependencies = [
  "chrono",
  "crossbeam",
@@ -351,9 +334,9 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.7.14"
+version = "0.7.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "065681e99f9ef7e0e813702a0326aedbcbbde7db5e55f097aedd1bf50b9dca43"
+checksum = "9f6733da246dc2af610133c8be0667170fd68e8ca5630936b520300eee8846f9"
 dependencies = [
  "atomic-polyfill",
  "defmt",
@@ -483,19 +466,6 @@ checksum = "546c37ac5d9e56f55e73b677106873d9d9f5190605e41a856503623648488cae"
 
 [[package]]
 name = "nix"
-version = "0.23.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f866317acbd3a240710c63f065ffb1e4fd466259045ccb504130b7f668f35c6"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if",
- "libc",
- "memoffset",
-]
-
-[[package]]
-name = "nix"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f17df307904acd05aa8e32e97bb20f2a0df1728bbc2d771ae8f9a90463441e9"
@@ -503,7 +473,6 @@ dependencies = [
  "bitflags",
  "cfg-if",
  "libc",
- "memoffset",
 ]
 
 [[package]]
@@ -527,9 +496,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.12.0"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
+checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
 
 [[package]]
 name = "opilio_tui"
@@ -538,11 +507,9 @@ dependencies = [
  "anyhow",
  "common",
  "crossterm 0.24.0",
- "daemonize-me",
  "fast_log",
  "heapless",
  "log",
- "nix 0.24.1",
  "postcard",
  "serialport",
  "tui",
@@ -642,9 +609,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.5.6"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d83f127d94bdbcda4c8cc2e50f6f84f4b611f69c902699ca385a39c3a75f9ff1"
+checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -653,9 +620,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.26"
+version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
+checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
 
 [[package]]
 name = "riscv"
@@ -772,7 +739,7 @@ dependencies = [
  "cfg-if",
  "libudev",
  "mach 0.3.2",
- "nix 0.24.1",
+ "nix",
  "regex",
  "winapi",
 ]
@@ -837,26 +804,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "thiserror"
-version = "1.0.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd829fe32373d27f76265620b5309d0340cb8550f523c1dda251d6298069069a"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0396bc89e626244658bef819e22d0cc459e795a5ebe878e6ec336d1674a8d79a"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

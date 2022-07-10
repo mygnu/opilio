@@ -4,20 +4,22 @@ use defmt::Format;
 use error::Error;
 use heapless::Vec;
 pub use otw::OTW;
+use postcard::{from_bytes, to_vec};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_DUTY_PERCENT: f32 = 100.0;
 pub const MIN_DUTY_PERCENT: f32 = 10.0; // 10% usually when a pwm fan starts to spin
 pub const MIN_TEMP: f32 = 15.0;
-pub const MAX_TEMP: f32 = 40.0;
+pub const MAX_TEMP: f32 = 50.0;
 
 pub const CONFIG_SIZE: usize = 18;
+pub const CONFIGS_SIZE: usize = 128; // 76 bytes currently but can expand
 pub const STATS_DATA_SIZE: usize = 20;
 pub const MAX_SERIAL_DATA_SIZE: usize = 64;
-pub const CMD_SERIAL_SIZE: usize = 1;
 pub const DEFAULT_SLEEP_AFTER: u64 = 60 * 5 * 1000; // five minutes
-pub const OVER_WIRE_DATA_SIZE: usize = MAX_SERIAL_DATA_SIZE - CMD_SERIAL_SIZE;
 
+// requested from https:://pid.codes
+// https://github.com/pidcodes/pidcodes.github.com/pull/751
 pub const VID: u16 = 0x1209;
 pub const PID: u16 = 0x2442;
 
@@ -93,6 +95,23 @@ impl Config {
             && self.min_temp >= MIN_TEMP
             && self.max_temp <= MAX_TEMP
     }
+
+    pub fn get_duty(&self, temp: f32, max_duty_value: u16) -> u16 {
+        if !self.enabled {
+            return 0;
+        }
+
+        let duty_percent = if temp <= self.min_temp {
+            0.0 // stop the fan if tem is really low
+        } else if temp >= self.max_temp {
+            self.max_duty
+        } else {
+            (self.max_duty - self.min_duty) * (temp - self.min_temp)
+                / (self.max_temp - self.min_temp)
+                + self.min_duty
+        };
+        max_duty_value / 100 * duty_percent as u16
+    }
 }
 
 #[derive(Format, Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -101,10 +120,10 @@ pub enum Response {
     Error(Error),
 }
 
-#[derive(Format, Deserialize, Serialize)]
+#[derive(Format, Deserialize, Serialize, Debug, PartialEq)]
 pub struct Configs {
-    pub data: Vec<Config, 4>,
     pub sleep_after: u64,
+    pub data: Vec<Config, 4>,
 }
 
 impl Default for Configs {
@@ -142,7 +161,16 @@ impl Configs {
             }
         }
     }
+
     pub fn get(&self, fan_id: FanId) -> Option<&Config> {
         self.data.iter().find(|&&c| c.id == fan_id)
+    }
+
+    pub fn to_vec(&self) -> Result<Vec<u8, CONFIGS_SIZE>> {
+        to_vec(&self).map_err(Error::from)
+    }
+
+    pub fn from_bytes(slice: &[u8]) -> Result<Self> {
+        from_bytes(slice).map_err(Error::from)
     }
 }

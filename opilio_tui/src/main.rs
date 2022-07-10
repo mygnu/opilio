@@ -1,6 +1,5 @@
 use anyhow::Result;
 use app::App;
-use daemonize_me::Daemon;
 use fast_log::Config;
 use log::error;
 
@@ -8,10 +7,8 @@ mod app;
 mod serial_port;
 
 use std::{
-    fs::File,
     io::{self, BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
-    process,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -69,31 +66,8 @@ fn main() -> Result<()> {
     )?;
     terminal.show_cursor()?;
 
-    match res {
-        Err(err) => error!("{:?}", err),
-        Ok(daemonize) => {
-            if daemonize {
-                println!("Daemon mode");
-                let stdout = File::create("info.log").unwrap();
-                let stderr = File::create("err.log").unwrap();
-                let daemon = Daemon::new()
-                    .pid_file("example.pid", Some(false))
-                    // .umask(0o000)
-                    .work_dir(".")
-                    .stdout(stdout)
-                    .stderr(stderr)
-                    //
-                    .start();
-
-                match daemon {
-                    Ok(_) => println!("Daemonized with success"),
-                    Err(e) => {
-                        println!("Error, {}", e);
-                        // process::exit(-1);
-                    }
-                }
-            }
-        }
+    if let Err(err) = res {
+        error!("{:?}", err)
     }
 
     Ok(())
@@ -104,7 +78,7 @@ fn run_app<B: Backend>(
     app: &mut App,
     tick_rate: Duration,
     shutdown: Arc<AtomicBool>,
-) -> Result<bool> {
+) -> Result<()> {
     let mut last_tick = Instant::now();
     loop {
         log::info!("tick");
@@ -116,8 +90,8 @@ fn run_app<B: Backend>(
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
-                    KeyCode::Char('q') => return Ok(true),
-                    KeyCode::Char('k') => return Ok(false),
+                    KeyCode::Char('q') => return Ok(()),
+
                     KeyCode::Char('h') => app.input_mode = InputMode::Help,
                     KeyCode::Esc => app.input_mode = InputMode::Normal,
                     _ => (),
@@ -129,7 +103,7 @@ fn run_app<B: Backend>(
             last_tick = Instant::now();
         }
         if shutdown.load(Ordering::Relaxed) {
-            return Ok(false);
+            return Ok(());
         }
     }
 }
