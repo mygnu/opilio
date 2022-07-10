@@ -24,6 +24,7 @@ impl OTW {
             Cmd::GetConfig => matches!(data, Data::FanId(_)),
             Cmd::Result => matches!(data, Data::Result(_)),
             Cmd::Stats => matches!(data, Data::Stats(_)),
+            Cmd::SetStandby => matches!(data, Data::U64(_)),
         } {
             Ok(Self { cmd, data })
         } else {
@@ -55,6 +56,7 @@ impl OTW {
             Cmd::Stats => Data::Stats(from_bytes(&slice[2..])?),
             Cmd::GetConfig => Data::FanId(from_bytes(&slice[2..])?),
             Cmd::Result => Data::Result(from_bytes(&slice[2..])?),
+            Cmd::SetStandby => Data::U64(from_bytes(&slice[2..])?),
             Cmd::GetStats | Cmd::SaveConfig => Data::Empty,
         };
         Ok(Self { cmd: command, data })

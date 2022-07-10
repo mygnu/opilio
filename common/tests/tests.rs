@@ -176,3 +176,13 @@ fn should_serde_config_data() {
     let otwb = OTW::from_bytes(&vec).unwrap();
     assert_eq!(otw, otwb);
 }
+
+#[test]
+fn should_serde_standby() {
+    let otw = OTW::new(Cmd::SetStandby, Data::U64(200000)).unwrap();
+    println!("{:?}", otw);
+    let vec = otw.to_vec().unwrap();
+    println!("{:?}", vec);
+    let otwb = OTW::from_bytes(&vec).unwrap();
+    assert_eq!(otw, otwb);
+}

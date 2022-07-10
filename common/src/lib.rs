@@ -15,7 +15,7 @@ pub const CONFIG_SIZE: usize = 18;
 pub const STATS_DATA_SIZE: usize = 20;
 pub const MAX_SERIAL_DATA_SIZE: usize = 64;
 pub const CMD_SERIAL_SIZE: usize = 1;
-pub const DEFAULT_SLEEP_AFTER: u32 = 60 * 5; // five minutes
+pub const DEFAULT_SLEEP_AFTER: u64 = 60 * 5 * 1000; // five minutes
 pub const OVER_WIRE_DATA_SIZE: usize = MAX_SERIAL_DATA_SIZE - CMD_SERIAL_SIZE;
 
 pub const VID: u16 = 0x1209;
@@ -35,6 +35,7 @@ pub enum Cmd {
     Stats = 5,
     Config = 6,
     Result = 7,
+    SetStandby = 8,
 }
 
 #[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -43,6 +44,7 @@ pub enum Data {
     Config(Config),
     Stats(Stats),
     Result(Response),
+    U64(u64),
     Empty,
 }
 
@@ -102,8 +104,7 @@ pub enum Response {
 #[derive(Format, Deserialize, Serialize)]
 pub struct Configs {
     pub data: Vec<Config, 4>,
-    pub persistent: bool,
-    pub sleep_after_s: u32,
+    pub sleep_after: u64,
 }
 
 impl Default for Configs {
@@ -116,8 +117,7 @@ impl Default for Configs {
 
         Self {
             data,
-            persistent: true,
-            sleep_after_s: DEFAULT_SLEEP_AFTER,
+            sleep_after: DEFAULT_SLEEP_AFTER,
         }
     }
 }
