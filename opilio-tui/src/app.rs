@@ -1,5 +1,5 @@
 use anyhow::Result;
-use common::{PID, VID};
+use opilio_lib::{PID, VID};
 use tui::{
     style::{Color, Modifier, Style},
     symbols,

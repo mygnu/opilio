@@ -1,5 +1,5 @@
 [package]
-name = "opilio_tui"
+name = "opilio-tui"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,7 +13,7 @@ heapless = "0.7"
 log = "0.4"
 postcard = "1.0"
 serialport = "4.2"
-common = { path = "../common", features = ["std"]}
+opilio-lib = { path = "../opilio-lib", features = ["std"]}
 tui = "0.18"
 
 

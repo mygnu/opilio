@@ -125,16 +125,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
-name = "common"
-version = "0.2.0"
-dependencies = [
- "defmt",
- "heapless",
- "postcard",
- "serde",
-]
-
-[[package]]
 name = "cortex-m"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -501,15 +491,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
 
 [[package]]
-name = "opilio_tui"
+name = "opilio-lib"
+version = "0.2.0"
+dependencies = [
+ "defmt",
+ "heapless",
+ "postcard",
+ "serde",
+]
+
+[[package]]
+name = "opilio-tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "common",
  "crossterm 0.24.0",
  "fast_log",
  "heapless",
  "log",
+ "opilio-lib",
  "postcard",
  "serialport",
  "tui",

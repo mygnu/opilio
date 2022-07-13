@@ -4,8 +4,8 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Ok, Result};
-use common::{Cmd, Config, Data, FanId, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 use log::info;
+use opilio_lib::{Cmd, Config, Data, FanId, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
 
 pub struct OpilioSerial {

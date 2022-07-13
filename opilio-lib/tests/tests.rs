@@ -1,4 +1,4 @@
-use common::*;
+use opilio_lib::*;
 
 #[test]
 fn should_serde_empty_data() {
