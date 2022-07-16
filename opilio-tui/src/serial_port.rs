@@ -32,7 +32,7 @@ impl OpilioSerial {
             bail!("Failed to read any bytes from the port")
         }
 
-        info!("data over serial: {:?}", buffer);
+        // info!("data over serial: {:?}", buffer);
 
         let data = OTW::from_bytes(&buffer)?;
         info!("Received {:?}", data);
@@ -40,6 +40,22 @@ impl OpilioSerial {
             Data::Stats(s) => Ok(s),
             _ => bail!("Failed to get data"),
         }
+    }
+
+    pub fn upload_config(&mut self, config: Config) -> Result<()> {
+        self.clear_buffers()?;
+        let cmd = OTW::new(Cmd::SetConfig, Data::Config(config))?.to_vec()?;
+        log::info!("sending config bytes {:?}", cmd);
+        self.port.write_all(&cmd)?;
+
+        let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
+        }
+        let data = OTW::from_bytes(&buffer)?;
+        log::info!("{:?}", data);
+        Ok(())
     }
 
     pub fn get_config(&mut self) -> Result<Config> {

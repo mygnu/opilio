@@ -543,6 +543,7 @@ dependencies = [
  "log",
  "opilio-lib",
  "postcard",
+ "serde_json",
  "serialport",
  "toml",
  "tui",

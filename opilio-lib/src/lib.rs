@@ -42,7 +42,7 @@ pub enum Cmd {
 
 #[derive(Format, Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum Data {
-    FanId(FanId),
+    ConfigId(ConfId),
     Config(Config),
     Stats(Stats),
     Result(Response),
@@ -51,11 +51,11 @@ pub enum Data {
 }
 
 #[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub enum FanId {
-    F1 = 1,
-    F2 = 2,
-    F3 = 3,
-    F4 = 4,
+pub enum ConfId {
+    P1 = 1,
+    F1 = 2,
+    F2 = 3,
+    F3 = 4,
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
@@ -64,13 +64,13 @@ pub struct Stats {
     pub rpm2: f32,
     pub rpm3: f32,
     pub rpm4: f32,
-    pub water_temp: f32,
+    pub liquid_temp: f32,
     pub ambient_temp: f32,
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
-pub struct FanConfig {
-    pub id: FanId,
+pub struct FanSetting {
+    pub id: ConfId,
     pub enabled: bool,
     pub min_duty: f32,
     pub max_duty: f32,
@@ -78,8 +78,8 @@ pub struct FanConfig {
     pub max_temp: f32,
 }
 
-impl FanConfig {
-    pub fn new(id: FanId) -> Self {
+impl FanSetting {
+    pub fn new(id: ConfId) -> Self {
         Self {
             id,
             enabled: true,
@@ -124,16 +124,16 @@ pub enum Response {
 #[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
 pub struct Config {
     pub sleep_after_ms: u64,
-    pub data: Vec<FanConfig, 4>,
+    pub data: Vec<FanSetting, 4>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         let mut data: Vec<_, 4> = Vec::new();
-        data.push(FanConfig::new(FanId::F1)).ok();
-        data.push(FanConfig::new(FanId::F2)).ok();
-        data.push(FanConfig::new(FanId::F3)).ok();
-        data.push(FanConfig::new(FanId::F4)).ok();
+        data.push(FanSetting::new(ConfId::P1)).ok();
+        data.push(FanSetting::new(ConfId::F1)).ok();
+        data.push(FanSetting::new(ConfId::F2)).ok();
+        data.push(FanSetting::new(ConfId::F3)).ok();
 
         Self {
             data,
@@ -142,8 +142,8 @@ impl Default for Config {
     }
 }
 
-impl AsRef<Vec<FanConfig, 4>> for Config {
-    fn as_ref(&self) -> &Vec<FanConfig, 4> {
+impl AsRef<Vec<FanSetting, 4>> for Config {
+    fn as_ref(&self) -> &Vec<FanSetting, 4> {
         &self.data
     }
 }
@@ -153,7 +153,7 @@ impl Config {
         self.as_ref().iter().all(|c| c.is_valid())
     }
 
-    pub fn set(&mut self, config: FanConfig) {
+    pub fn set(&mut self, config: FanSetting) {
         for c in self.data.iter_mut() {
             if c.id == config.id {
                 defmt::debug!("setting new config {:?}", config);
@@ -163,7 +163,7 @@ impl Config {
         }
     }
 
-    pub fn get(&self, fan_id: FanId) -> Option<&FanConfig> {
+    pub fn get(&self, fan_id: ConfId) -> Option<&FanSetting> {
         self.data.iter().find(|&&c| c.id == fan_id)
     }
 

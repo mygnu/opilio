@@ -83,7 +83,6 @@ fn run_app<B: Backend>(
 ) -> Result<()> {
     let mut last_tick = Instant::now();
     loop {
-        log::info!("tick");
         terminal.draw(|f| ui(f, &app))?;
 
         let timeout = tick_rate
@@ -92,10 +91,14 @@ fn run_app<B: Backend>(
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
-                    KeyCode::Char('q') => return Ok(()),
-
-                    KeyCode::Char('h') => app.input_mode = InputMode::Help,
                     KeyCode::Esc => app.input_mode = InputMode::Normal,
+                    KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('h') => app.input_mode = InputMode::ShowHelp,
+                    KeyCode::Char('u') => {
+                        if let Err(e) = app.upload_config() {
+                            log::error!("Error uploading config, {}", e);
+                        }
+                    }
                     _ => (),
                 }
             }
@@ -116,7 +119,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .constraints(
             [
                 Constraint::Length(30),
-                Constraint::Length(20),
+                Constraint::Length(25),
                 Constraint::Length(2),
             ]
             .as_ref(),
