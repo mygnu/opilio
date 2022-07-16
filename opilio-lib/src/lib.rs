@@ -64,7 +64,7 @@ pub struct Stats {
     pub rpm2: f32,
     pub rpm3: f32,
     pub rpm4: f32,
-    pub water_temp: f32,
+    pub liquid_temp: f32,
     pub ambient_temp: f32,
 }
 

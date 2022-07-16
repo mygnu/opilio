@@ -20,20 +20,14 @@ fn should_serde_empty_data() {
 #[test]
 fn should_fail_with_invalid_pair() {
     let empty = Data::Empty;
-    let config = Data::Config(FanConfig {
-        id: FanId::F1,
-        min_temp: 0.0,
-        max_temp: 1.0,
-        min_duty: 20.0,
-        max_duty: 23.0,
-        enabled: false,
-    });
+    let config = Data::Config(Config::default());
     let stats = Data::Stats(Stats {
         rpm1: f32::MAX,
         rpm2: f32::MAX,
         rpm3: f32::MAX,
         rpm4: f32::MAX,
-        water_temp: f32::MAX,
+        liquid_temp: f32::MAX,
+        ambient_temp: f32::MAX,
     });
     let fan_id = Data::FanId(FanId::F1);
     let response = Data::Result(Response::Ok);
@@ -68,10 +62,10 @@ fn should_fail_with_invalid_pair() {
     OTW::new(Cmd::Stats, fan_id.clone()).unwrap_err();
     OTW::new(Cmd::Stats, response.clone()).unwrap_err();
 
-    OTW::new(Cmd::GetConfig, empty.clone()).unwrap_err();
+    OTW::new(Cmd::GetConfig, empty.clone()).unwrap();
     OTW::new(Cmd::GetConfig, config.clone()).unwrap_err();
     OTW::new(Cmd::GetConfig, stats.clone()).unwrap_err();
-    OTW::new(Cmd::GetConfig, fan_id.clone()).unwrap();
+    OTW::new(Cmd::GetConfig, fan_id.clone()).unwrap_err();
     OTW::new(Cmd::GetConfig, response.clone()).unwrap_err();
 
     OTW::new(Cmd::Result, empty.clone()).unwrap_err();
@@ -91,7 +85,8 @@ fn should_serde_stats_data() {
             rpm2: 0.0,
             rpm3: 1.0,
             rpm4: 20.0,
-            water_temp: 23.0,
+            liquid_temp: 23.0,
+            ambient_temp: 20.0,
         }),
     )
     .unwrap();
@@ -108,7 +103,8 @@ fn should_serde_stats_data() {
             rpm2: 0.0,
             rpm3: 0.0,
             rpm4: 0.0,
-            water_temp: 0.1,
+            liquid_temp: 0.1,
+            ambient_temp: 0.0,
         }),
     )
     .unwrap();
@@ -126,7 +122,8 @@ fn should_serde_stats_data() {
             rpm2: f32::MAX,
             rpm3: f32::MAX,
             rpm4: f32::MAX,
-            water_temp: f32::MAX,
+            liquid_temp: f32::MAX,
+            ambient_temp: f32::MAX,
         }),
     )
     .unwrap();
@@ -139,36 +136,14 @@ fn should_serde_stats_data() {
 
 #[test]
 fn should_serde_config_data() {
-    let otw = OTW::new(
-        Cmd::Config,
-        Data::Config(FanConfig {
-            id: FanId::F1,
-            min_temp: 0.0,
-            max_temp: 1.0,
-            min_duty: 20.0,
-            max_duty: 23.0,
-            enabled: false,
-        }),
-    )
-    .unwrap();
+    let otw = OTW::new(Cmd::Config, Data::Config(Config::default())).unwrap();
     println!("{:?}", otw);
     let vec = otw.to_vec().unwrap();
     println!("{:?}", vec);
     let otwb = OTW::from_bytes(&vec).unwrap();
     assert_eq!(otw, otwb);
 
-    let otw = OTW::new(
-        Cmd::Config,
-        Data::Config(FanConfig {
-            id: FanId::F1,
-            min_temp: f32::MAX,
-            max_temp: f32::MAX,
-            min_duty: f32::MAX,
-            max_duty: f32::MAX,
-            enabled: false,
-        }),
-    )
-    .unwrap();
+    let otw = OTW::new(Cmd::Config, Data::Config(Config::default())).unwrap();
     println!("{:?}", otw);
     let vec = otw.to_vec().unwrap();
     assert!(vec.len() <= MAX_SERIAL_DATA_SIZE);

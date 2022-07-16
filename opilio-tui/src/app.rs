@@ -96,7 +96,7 @@ impl App {
         match self.opilio.get_stats() {
             Ok(stats) => {
                 self.current_temp =
-                    (self.current_temp + stats.water_temp as f64) / 2.0;
+                    (self.current_temp + stats.liquid_temp as f64) / 2.0;
                 let [rpm1, rpm2, rpm3, rpm4] = self.current_rpms;
                 self.current_rpms = [
                     (stats.rpm1 as f64 + rpm1) / 2.0,
