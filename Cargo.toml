@@ -1,6 +1,6 @@
 [workspace]
 
 members = [
-    "opilio_tui",
-    "shared",
+    "opilio-lib",
+    "opilio-tui",
 ]

@@ -3,14 +3,10 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{anyhow, bail, Ok, Result};
 use log::info;
-use postcard::to_vec;
+use opilio_lib::{Cmd, Config, Data, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
-use shared::{
-    Command, Config, Error, FanId, OverWireCmd, Stats, CONFIG_SIZE,
-    STATS_DATA_SIZE,
-};
 
 pub struct OpilioSerial {
     vid: u16,
@@ -27,32 +23,40 @@ impl OpilioSerial {
     pub fn get_stats(&mut self) -> Result<Stats> {
         self.clear_buffers()?;
 
-        let cmd = OverWireCmd::new(Command::GetStats).to_vec()?;
+        let cmd = OTW::new(Cmd::GetStats, Data::Empty)?.to_vec()?;
         self.port.write_all(&cmd)?;
 
-        let mut buffer = vec![0; STATS_DATA_SIZE];
-        self.port.read(buffer.as_mut_slice())?;
+        let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
+        }
 
         info!("data over serial: {:?}", buffer);
 
-        let data = Stats::from_bytes(&buffer)?;
+        let data = OTW::from_bytes(&buffer)?;
         info!("Received {:?}", data);
-        Ok(data)
+        match data.data() {
+            Data::Stats(s) => Ok(s),
+            _ => bail!("Failed to get data"),
+        }
     }
 
-    pub fn get_config(&mut self, fan_id: FanId) -> Result<Config> {
+    pub fn get_config(&mut self) -> Result<Config> {
         self.clear_buffers()?;
-        let cmd = OverWireCmd::new(Command::GetConfig)
-            .data(to_vec(&fan_id).map_err(Error::from)?)
-            .to_vec()?;
+        let cmd = OTW::new(Cmd::GetConfig, Data::Empty)?.to_vec()?;
         self.port.write_all(&cmd)?;
 
-        let mut buffer = vec![0; CONFIG_SIZE];
+        let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
 
-        self.port.read(buffer.as_mut_slice())?;
-
-        let data = Config::from_bytes(&buffer)?;
-        Ok(data)
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
+        }
+        let data = OTW::from_bytes(&buffer)?;
+        match data.data() {
+            Data::Config(s) => Ok(s),
+            _ => bail!("Failed to get data"),
+        }
     }
 
     fn clear_buffers(&mut self) -> Result<()> {

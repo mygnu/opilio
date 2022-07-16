@@ -1,5 +1,5 @@
 [package]
-name = "opilio_tui"
+name = "opilio-tui"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,5 +13,13 @@ heapless = "0.7"
 log = "0.4"
 postcard = "1.0"
 serialport = "4.2"
-shared = { path = "../shared", features = ["std"]}
+opilio-lib = { path = "../opilio-lib", features = ["std"]}
 tui = "0.18"
+dirs = "4.0"
+toml = "0.5"
+
+
+
+[[bin]]
+name = "opilio"
+path = "src/main.rs"
