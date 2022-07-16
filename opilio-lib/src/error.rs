@@ -12,6 +12,7 @@ pub enum Error {
     Serialize,
     InvalidCmdDataPair,
     Unknown,
+    TempRead,
 }
 
 impl From<postcard::Error> for Error {

@@ -15,13 +15,12 @@ pub struct OTW {
 impl OTW {
     pub fn new(cmd: Cmd, data: Data) -> Result<Self> {
         if match cmd {
-            Cmd::GetStats | Cmd::SaveConfig => {
+            Cmd::GetStats | Cmd::SaveConfig | Cmd::GetConfig => {
                 matches!(data, Data::Empty)
             }
             Cmd::Config | Cmd::SetConfig => {
                 matches!(data, Data::Config(_))
             }
-            Cmd::GetConfig => matches!(data, Data::FanId(_)),
             Cmd::Result => matches!(data, Data::Result(_)),
             Cmd::Stats => matches!(data, Data::Stats(_)),
             Cmd::SetStandby => matches!(data, Data::U64(_)),

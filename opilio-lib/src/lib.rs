@@ -13,10 +13,10 @@ pub const MIN_TEMP: f32 = 15.0;
 pub const MAX_TEMP: f32 = 50.0;
 
 pub const CONFIG_SIZE: usize = 18;
-pub const CONFIGS_SIZE: usize = 128; // 76 bytes currently but can expand
+pub const CONFIGS_SIZE: usize = 96; // 76 bytes currently but can expand
 pub const STATS_DATA_SIZE: usize = 20;
-pub const MAX_SERIAL_DATA_SIZE: usize = 64;
-pub const DEFAULT_SLEEP_AFTER: u64 = 60 * 5 * 1000; // five minutes
+pub const MAX_SERIAL_DATA_SIZE: usize = 128;
+pub const DEFAULT_SLEEP_AFTER_MS: u64 = 60 * 5 * 1000; // five minutes
 
 // requested from https:://pid.codes
 // https://github.com/pidcodes/pidcodes.github.com/pull/751
@@ -40,7 +40,7 @@ pub enum Cmd {
     SetStandby = 8,
 }
 
-#[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Format, Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum Data {
     FanId(FanId),
     Config(Config),
@@ -64,11 +64,12 @@ pub struct Stats {
     pub rpm2: f32,
     pub rpm3: f32,
     pub rpm4: f32,
-    pub temp1: f32,
+    pub water_temp: f32,
+    pub ambient_temp: f32,
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
-pub struct Config {
+pub struct FanConfig {
     pub id: FanId,
     pub enabled: bool,
     pub min_duty: f32,
@@ -77,7 +78,7 @@ pub struct Config {
     pub max_temp: f32,
 }
 
-impl Config {
+impl FanConfig {
     pub fn new(id: FanId) -> Self {
         Self {
             id,
@@ -120,39 +121,39 @@ pub enum Response {
     Error(Error),
 }
 
-#[derive(Format, Deserialize, Serialize, Debug, PartialEq)]
-pub struct Configs {
-    pub sleep_after: u64,
-    pub data: Vec<Config, 4>,
+#[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
+pub struct Config {
+    pub sleep_after_ms: u64,
+    pub data: Vec<FanConfig, 4>,
 }
 
-impl Default for Configs {
+impl Default for Config {
     fn default() -> Self {
         let mut data: Vec<_, 4> = Vec::new();
-        data.push(Config::new(FanId::F1)).ok();
-        data.push(Config::new(FanId::F2)).ok();
-        data.push(Config::new(FanId::F3)).ok();
-        data.push(Config::new(FanId::F4)).ok();
+        data.push(FanConfig::new(FanId::F1)).ok();
+        data.push(FanConfig::new(FanId::F2)).ok();
+        data.push(FanConfig::new(FanId::F3)).ok();
+        data.push(FanConfig::new(FanId::F4)).ok();
 
         Self {
             data,
-            sleep_after: DEFAULT_SLEEP_AFTER,
+            sleep_after_ms: DEFAULT_SLEEP_AFTER_MS,
         }
     }
 }
 
-impl AsRef<Vec<Config, 4>> for Configs {
-    fn as_ref(&self) -> &Vec<Config, 4> {
+impl AsRef<Vec<FanConfig, 4>> for Config {
+    fn as_ref(&self) -> &Vec<FanConfig, 4> {
         &self.data
     }
 }
 
-impl Configs {
+impl Config {
     pub fn is_valid(&self) -> bool {
         self.as_ref().iter().all(|c| c.is_valid())
     }
 
-    pub fn set(&mut self, config: Config) {
+    pub fn set(&mut self, config: FanConfig) {
         for c in self.data.iter_mut() {
             if c.id == config.id {
                 defmt::debug!("setting new config {:?}", config);
@@ -162,7 +163,7 @@ impl Configs {
         }
     }
 
-    pub fn get(&self, fan_id: FanId) -> Option<&Config> {
+    pub fn get(&self, fan_id: FanId) -> Option<&FanConfig> {
         self.data.iter().find(|&&c| c.id == fan_id)
     }
 

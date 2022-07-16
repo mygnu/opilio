@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Ok, Result};
 use log::info;
-use opilio_lib::{Cmd, Config, Data, FanId, Stats, MAX_SERIAL_DATA_SIZE, OTW};
+use opilio_lib::{Cmd, Config, Data, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
 
 pub struct OpilioSerial {
@@ -42,9 +42,9 @@ impl OpilioSerial {
         }
     }
 
-    pub fn get_config(&mut self, fan_id: FanId) -> Result<Config> {
+    pub fn get_config(&mut self) -> Result<Config> {
         self.clear_buffers()?;
-        let cmd = OTW::new(Cmd::GetConfig, Data::FanId(fan_id))?.to_vec()?;
+        let cmd = OTW::new(Cmd::GetConfig, Data::Empty)?.to_vec()?;
         self.port.write_all(&cmd)?;
 
         let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];

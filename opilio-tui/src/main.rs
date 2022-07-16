@@ -4,6 +4,7 @@ use fast_log::Config;
 use log::error;
 
 mod app;
+mod config;
 mod serial_port;
 
 use std::{
@@ -36,6 +37,7 @@ use crate::app::InputMode;
 fn main() -> Result<()> {
     let shutdown = Arc::new(AtomicBool::new(false));
     listen_tcp(shutdown.clone());
+
     // fs::write("opilio.log", "")?;
     fast_log::init(Config::new().file("opilio.log"))?;
 

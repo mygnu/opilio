@@ -1,5 +1,5 @@
 use anyhow::Result;
-use opilio_lib::{PID, VID};
+use opilio_lib::{Config, PID, VID};
 use tui::{
     style::{Color, Modifier, Style},
     symbols,
@@ -7,7 +7,10 @@ use tui::{
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
 };
 
-use crate::serial_port::OpilioSerial;
+use crate::{
+    config::{from_disk, save_config},
+    serial_port::OpilioSerial,
+};
 
 const TIME_SPAN: f64 = 60.0;
 const TICK_DISTANCE: f64 = 0.5;
@@ -38,6 +41,7 @@ pub struct App {
     window: [f64; 2],
     current_temp: f64,
     current_rpms: [f64; 4],
+    config: Config,
     pub input_mode: InputMode,
 }
 
@@ -48,7 +52,18 @@ impl App {
         let fan3 = vec![(ZERO, ZERO)];
         let fan4 = vec![(ZERO, ZERO)];
         let temp = vec![(ZERO, ZERO)];
-        let opilio = OpilioSerial::new(VID, PID)?;
+        let mut opilio = OpilioSerial::new(VID, PID)?;
+
+        let config = match from_disk() {
+            Ok(config) => config,
+
+            Err(_) => {
+                let config = opilio.get_config()?;
+                save_config(&config)?;
+                config
+            }
+        };
+
         Ok(App {
             opilio,
             fan1,
@@ -57,6 +72,7 @@ impl App {
             fan4,
             window: [ZERO, TIME_SPAN],
             temp,
+            config,
             current_temp: ZERO,
             current_rpms: [ZERO; 4],
             last_point: TIME_SPAN,
@@ -80,7 +96,7 @@ impl App {
         match self.opilio.get_stats() {
             Ok(stats) => {
                 self.current_temp =
-                    (self.current_temp + stats.temp1 as f64) / 2.0;
+                    (self.current_temp + stats.water_temp as f64) / 2.0;
                 let [rpm1, rpm2, rpm3, rpm4] = self.current_rpms;
                 self.current_rpms = [
                     (stats.rpm1 as f64 + rpm1) / 2.0,

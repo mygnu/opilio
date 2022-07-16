@@ -20,7 +20,7 @@ fn should_serde_empty_data() {
 #[test]
 fn should_fail_with_invalid_pair() {
     let empty = Data::Empty;
-    let config = Data::Config(Config {
+    let config = Data::Config(FanConfig {
         id: FanId::F1,
         min_temp: 0.0,
         max_temp: 1.0,
@@ -33,7 +33,7 @@ fn should_fail_with_invalid_pair() {
         rpm2: f32::MAX,
         rpm3: f32::MAX,
         rpm4: f32::MAX,
-        temp1: f32::MAX,
+        water_temp: f32::MAX,
     });
     let fan_id = Data::FanId(FanId::F1);
     let response = Data::Result(Response::Ok);
@@ -91,7 +91,7 @@ fn should_serde_stats_data() {
             rpm2: 0.0,
             rpm3: 1.0,
             rpm4: 20.0,
-            temp1: 23.0,
+            water_temp: 23.0,
         }),
     )
     .unwrap();
@@ -108,7 +108,7 @@ fn should_serde_stats_data() {
             rpm2: 0.0,
             rpm3: 0.0,
             rpm4: 0.0,
-            temp1: 0.1,
+            water_temp: 0.1,
         }),
     )
     .unwrap();
@@ -126,7 +126,7 @@ fn should_serde_stats_data() {
             rpm2: f32::MAX,
             rpm3: f32::MAX,
             rpm4: f32::MAX,
-            temp1: f32::MAX,
+            water_temp: f32::MAX,
         }),
     )
     .unwrap();
@@ -141,7 +141,7 @@ fn should_serde_stats_data() {
 fn should_serde_config_data() {
     let otw = OTW::new(
         Cmd::Config,
-        Data::Config(Config {
+        Data::Config(FanConfig {
             id: FanId::F1,
             min_temp: 0.0,
             max_temp: 1.0,
@@ -159,7 +159,7 @@ fn should_serde_config_data() {
 
     let otw = OTW::new(
         Cmd::Config,
-        Data::Config(Config {
+        Data::Config(FanConfig {
             id: FanId::F1,
             min_temp: f32::MAX,
             max_temp: f32::MAX,
@@ -189,13 +189,13 @@ fn should_serde_standby() {
 
 #[test]
 fn should_serde_configs() {
-    let mut configs = Configs::default();
+    let mut configs = Config::default();
     println!("{:?}", configs);
     let vec = configs.to_vec().unwrap();
     println!("{}\n {:?}", vec.len(), vec);
-    let res = Configs::from_bytes(&vec).unwrap();
+    let res = Config::from_bytes(&vec).unwrap();
     assert_eq!(res, configs);
-    configs.data[0] = Config {
+    configs.data[0] = FanConfig {
         id: FanId::F1,
         min_temp: 0.0,
         max_temp: 0.0,
@@ -206,6 +206,6 @@ fn should_serde_configs() {
     println!("{:?}", configs);
     let vec = configs.to_vec().unwrap();
     println!("{}\n {:?}", vec.len(), vec);
-    let res = Configs::from_bytes(&vec).unwrap();
+    let res = Config::from_bytes(&vec).unwrap();
     assert_eq!(res, configs);
 }
