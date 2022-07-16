@@ -29,7 +29,7 @@ fn should_fail_with_invalid_pair() {
         liquid_temp: f32::MAX,
         ambient_temp: f32::MAX,
     });
-    let fan_id = Data::FanId(FanId::F1);
+    let fan_id = Data::ConfigId(ConfId::P1);
     let response = Data::Result(Response::Ok);
 
     OTW::new(Cmd::SaveConfig, empty.clone()).unwrap();
@@ -170,8 +170,8 @@ fn should_serde_configs() {
     println!("{}\n {:?}", vec.len(), vec);
     let res = Config::from_bytes(&vec).unwrap();
     assert_eq!(res, configs);
-    configs.data[0] = FanConfig {
-        id: FanId::F1,
+    configs.data[0] = FanSetting {
+        id: ConfId::P1,
         min_temp: 0.0,
         max_temp: 0.0,
         min_duty: 0.0,

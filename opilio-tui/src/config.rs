@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 
 use opilio_lib::Config;
 const CONFIG_DIR_NAME: &str = "opilio";
-const CONFIG_FILE_NAME: &str = "opilio.toml";
+const CONFIG_FILE_NAME: &str = "opilio.json";
 
 fn config_file() -> Result<PathBuf> {
     let dir = dirs::config_dir()
@@ -20,7 +20,7 @@ pub fn from_disk() -> Result<Config> {
     let path = config_file()?;
     if path.exists() {
         let data = fs::read_to_string(path)?;
-        let configs: Config = toml::from_str(&data)?;
+        let configs: Config = serde_json::from_str(&data)?;
         Ok(configs)
     } else {
         bail!("Could not find config file")
@@ -29,7 +29,7 @@ pub fn from_disk() -> Result<Config> {
 
 pub fn save_config(config: &Config) -> Result<()> {
     let path = config_file()?;
-    let data = toml::to_string_pretty(&config)?;
+    let data = serde_json::to_string_pretty(&config)?;
 
     fs::write(path, data)?;
     Ok(())
