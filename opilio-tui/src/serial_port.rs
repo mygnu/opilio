@@ -5,7 +5,9 @@ use std::{
 
 use anyhow::{anyhow, bail, Ok, Result};
 use log::info;
-use opilio_lib::{Cmd, Config, Data, Stats, MAX_SERIAL_DATA_SIZE, OTW};
+use opilio_lib::{
+    Cmd, Config, Data, FanSetting, Stats, MAX_SERIAL_DATA_SIZE, OTW,
+};
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
 
 pub struct OpilioSerial {
@@ -43,8 +45,16 @@ impl OpilioSerial {
     }
 
     pub fn upload_config(&mut self, config: Config) -> Result<()> {
+        for setting in config.settings.iter() {
+            self.upload_setting(setting)?;
+        }
+        Ok(())
+    }
+
+    pub fn upload_setting(&mut self, setting: &FanSetting) -> Result<()> {
         self.clear_buffers()?;
-        let cmd = OTW::new(Cmd::SetConfig, Data::Config(config))?.to_vec()?;
+        let cmd = OTW::new(Cmd::UploadSetting, Data::Setting(setting.clone()))?
+            .to_vec()?;
         log::info!("sending config bytes {:?}", cmd);
         self.port.write_all(&cmd)?;
 

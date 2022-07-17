@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::{
-    config::{config_file, from_disk, save_config},
+    config::{config_file, from_disk},
     serial_port::OpilioSerial,
 };
 
@@ -58,8 +58,11 @@ impl App {
         let fan3 = vec![(ZERO, ZERO)];
         let liquid_temp = vec![(ZERO, ZERO)];
         let ambient_temp = vec![(ZERO, ZERO)];
-        let serial = OpilioSerial::new(VID, PID)?;
+        let mut serial = OpilioSerial::new(VID, PID)?;
         let config_path = config_file()?.display().to_string();
+
+        let config = serial.get_config()?;
+        log::info!("{config:?}");
 
         Ok(App {
             serial,
