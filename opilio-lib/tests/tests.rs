@@ -20,7 +20,8 @@ fn should_serde_empty_data() {
 #[test]
 fn should_fail_with_invalid_pair() {
     let empty = Data::Empty;
-    let config = Data::Setting(FanSetting::new(Id::F1));
+    let config = Data::Config(Config::default());
+    let setting = Data::Setting(FanSetting::new(Id::F2));
     let stats = Data::Stats(Stats {
         pump1_rpm: f32::MAX,
         fan1_rpm: f32::MAX,
@@ -29,49 +30,49 @@ fn should_fail_with_invalid_pair() {
         liquid_temp: f32::MAX,
         ambient_temp: f32::MAX,
     });
-    let fan_id = Data::SettingId(Id::P1);
+    let id = Data::SettingId(Id::P1);
     let response = Data::Result(Response::Ok);
 
     OTW::new(Cmd::SaveConfig, empty.clone()).unwrap();
     OTW::new(Cmd::SaveConfig, config.clone()).unwrap_err();
     OTW::new(Cmd::SaveConfig, stats.clone()).unwrap_err();
-    OTW::new(Cmd::SaveConfig, fan_id.clone()).unwrap_err();
+    OTW::new(Cmd::SaveConfig, id.clone()).unwrap_err();
     OTW::new(Cmd::SaveConfig, response.clone()).unwrap_err();
 
     OTW::new(Cmd::GetStats, empty.clone()).unwrap();
     OTW::new(Cmd::GetStats, config.clone()).unwrap_err();
     OTW::new(Cmd::GetStats, stats.clone()).unwrap_err();
-    OTW::new(Cmd::GetStats, fan_id.clone()).unwrap_err();
+    OTW::new(Cmd::GetStats, id.clone()).unwrap_err();
     OTW::new(Cmd::GetStats, response.clone()).unwrap_err();
 
     OTW::new(Cmd::Config, empty.clone()).unwrap_err();
     OTW::new(Cmd::Config, config.clone()).unwrap();
     OTW::new(Cmd::Config, stats.clone()).unwrap_err();
-    OTW::new(Cmd::Config, fan_id.clone()).unwrap_err();
+    OTW::new(Cmd::Config, id.clone()).unwrap_err();
     OTW::new(Cmd::Config, response.clone()).unwrap_err();
 
     OTW::new(Cmd::UploadSetting, empty.clone()).unwrap_err();
-    OTW::new(Cmd::UploadSetting, config.clone()).unwrap();
+    OTW::new(Cmd::UploadSetting, setting.clone()).unwrap();
     OTW::new(Cmd::UploadSetting, stats.clone()).unwrap_err();
-    OTW::new(Cmd::UploadSetting, fan_id.clone()).unwrap_err();
+    OTW::new(Cmd::UploadSetting, id.clone()).unwrap_err();
     OTW::new(Cmd::UploadSetting, response.clone()).unwrap_err();
 
     OTW::new(Cmd::Stats, empty.clone()).unwrap_err();
     OTW::new(Cmd::Stats, config.clone()).unwrap_err();
     OTW::new(Cmd::Stats, stats.clone()).unwrap();
-    OTW::new(Cmd::Stats, fan_id.clone()).unwrap_err();
+    OTW::new(Cmd::Stats, id.clone()).unwrap_err();
     OTW::new(Cmd::Stats, response.clone()).unwrap_err();
 
     OTW::new(Cmd::GetConfig, empty.clone()).unwrap();
     OTW::new(Cmd::GetConfig, config.clone()).unwrap_err();
     OTW::new(Cmd::GetConfig, stats.clone()).unwrap_err();
-    OTW::new(Cmd::GetConfig, fan_id.clone()).unwrap_err();
+    OTW::new(Cmd::GetConfig, id.clone()).unwrap_err();
     OTW::new(Cmd::GetConfig, response.clone()).unwrap_err();
 
     OTW::new(Cmd::Result, empty.clone()).unwrap_err();
     OTW::new(Cmd::Result, config.clone()).unwrap_err();
     OTW::new(Cmd::Result, stats.clone()).unwrap_err();
-    OTW::new(Cmd::Result, fan_id.clone()).unwrap_err();
+    OTW::new(Cmd::Result, id.clone()).unwrap_err();
     OTW::new(Cmd::Result, response.clone()).unwrap();
     // consider a testing framework at this point
 }
@@ -154,7 +155,11 @@ fn should_serde_stats_data() {
 
 #[test]
 fn should_serde_standby() {
-    let otw = OTW::new(Cmd::SetStandby, Data::U64(200000)).unwrap();
+    let otw = OTW::new(
+        Cmd::UploadGeneral,
+        Data::General(GeneralConfig { sleep_after: 20 }),
+    )
+    .unwrap();
     println!("{:?}", otw);
     let vec = otw.to_vec().unwrap();
     println!("{:?}", vec);

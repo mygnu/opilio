@@ -45,6 +45,22 @@ impl OpilioSerial {
     }
 
     pub fn upload_config(&mut self, config: Config) -> Result<()> {
+        self.clear_buffers()?;
+        let cmd = OTW::new(
+            Cmd::UploadGeneral,
+            Data::General(config.general.clone()),
+        )?
+        .to_vec()?;
+        log::info!("sending general bytes {:?}", cmd);
+        self.port.write_all(&cmd)?;
+
+        let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
+        }
+
+        // upload rest of the settings one by one
         for setting in config.settings.iter() {
             self.upload_setting(setting)?;
         }
@@ -55,7 +71,7 @@ impl OpilioSerial {
         self.clear_buffers()?;
         let cmd = OTW::new(Cmd::UploadSetting, Data::Setting(setting.clone()))?
             .to_vec()?;
-        log::info!("sending config bytes {:?}", cmd);
+        log::info!("sending setting bytes {:?}", cmd);
         self.port.write_all(&cmd)?;
 
         let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];

@@ -36,7 +36,7 @@ pub enum Cmd {
     Stats = 5,
     Config = 6,
     Result = 8,
-    SetStandby = 9,
+    UploadGeneral = 9,
 }
 
 #[derive(Format, Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -46,7 +46,7 @@ pub enum Data {
     Config(Config),
     Stats(Stats),
     Result(Response),
-    U64(u64),
+    General(GeneralConfig),
     Empty,
 }
 
