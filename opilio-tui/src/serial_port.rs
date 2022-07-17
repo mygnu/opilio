@@ -98,7 +98,7 @@ fn open_port(vid: u16, pid: u16) -> Result<Box<dyn SerialPort>> {
         })
         .map(|p| p.port_name)
         .ok_or_else(|| {
-            anyhow!("Can't find port with vid {:#06x} pid {:#06x}", vid, pid)
+            anyhow!("Port with vid {:#06x} pid {:#06x}, not found", vid, pid)
         })?;
     let port = serialport::new(port_name, 115_200)
         .timeout(Duration::from_secs(1))

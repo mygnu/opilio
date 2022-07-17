@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::{
-    config::{from_disk, save_config},
+    config::{config_file, from_disk, save_config},
     serial_port::OpilioSerial,
 };
 
@@ -23,14 +23,18 @@ const RPM_Y_AXIS_MIN: f64 = 100.0;
 const TEMP_Y_AXIS_MIN: f64 = 10.0;
 const TEMP_Y_AXIS_MAX: f64 = 40.0;
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub enum InputMode {
     #[default]
     Normal,
     ShowHelp,
+    UploadPrompt,
+    ShowError,
+    ShowSuccess,
 }
 
 pub struct App {
+    config_path: String,
     serial: OpilioSerial,
     last_point: f64,
     liquid_temp: Vec<(f64, f64)>,
@@ -43,6 +47,7 @@ pub struct App {
     current_temps: [f64; 2],
     current_rpms: [f64; 4],
     pub input_mode: InputMode,
+    pub msg: String,
 }
 
 impl App {
@@ -54,6 +59,7 @@ impl App {
         let liquid_temp = vec![(ZERO, ZERO)];
         let ambient_temp = vec![(ZERO, ZERO)];
         let serial = OpilioSerial::new(VID, PID)?;
+        let config_path = config_file()?.display().to_string();
 
         Ok(App {
             serial,
@@ -63,11 +69,13 @@ impl App {
             fan3,
             window: [ZERO, TIME_SPAN],
             liquid_temp,
+            config_path,
             ambient_temp,
             current_temps: [ZERO; 2],
             current_rpms: [ZERO; 4],
             last_point: TIME_SPAN,
             input_mode: InputMode::default(),
+            msg: String::new(),
         })
     }
 
@@ -103,10 +111,10 @@ impl App {
 
                 let [rpm1, rpm2, rpm3, rpm4] = self.current_rpms;
                 self.current_rpms = [
-                    (stats.rpm1 as f64 + rpm1) / 2.0,
-                    (stats.rpm2 as f64 + rpm2) / 2.0,
-                    (stats.rpm3 as f64 + rpm3) / 2.0,
-                    (stats.rpm4 as f64 + rpm4) / 2.0,
+                    (stats.pump1_rpm as f64 + rpm1) / 2.0,
+                    (stats.fan1_rpm as f64 + rpm2) / 2.0,
+                    (stats.fan2_rpm as f64 + rpm3) / 2.0,
+                    (stats.fan3_rpm as f64 + rpm4) / 2.0,
                 ];
             }
             Err(e) => {
@@ -225,12 +233,36 @@ impl App {
                 .data(&self.fan3),
         ];
 
-        let max_rpm = self
-            .current_rpms
+        let pump_max = self
+            .pump1
             .iter()
+            .map(|v| v.1)
             .max_by(|a, b| a.total_cmp(b))
-            .unwrap_or(&RPM_Y_AXIS_MIN);
-        let rpm_y_axis_max = max_rpm + RPM_Y_AXIS_MIN * 1.3;
+            .unwrap();
+        let fan1_max = self
+            .fan1
+            .iter()
+            .map(|v| v.1)
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap();
+        let fan2_max = self
+            .fan2
+            .iter()
+            .map(|v| v.1)
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap();
+        let fan3_max = self
+            .fan3
+            .iter()
+            .map(|v| v.1)
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap();
+
+        let max_rpm = [pump_max, fan1_max, fan2_max, fan3_max]
+            .into_iter()
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap_or(RPM_Y_AXIS_MIN);
+        let rpm_y_axis_max = (max_rpm * 1.2) + RPM_Y_AXIS_MIN;
 
         let rpm_y_axis_max = (((rpm_y_axis_max as usize) / 50) * 50) as f64;
 
@@ -274,51 +306,43 @@ impl App {
         let (msg, style) = match self.input_mode {
             InputMode::Normal => (
                 vec![
-                    Span::raw("Commands: "),
                     Span::styled(
                         "q",
                         Style::default()
                             .add_modifier(Modifier::BOLD)
                             .fg(Color::Yellow),
                     ),
-                    Span::raw("uit to daemon, "),
+                    Span::raw("uit, "),
                     Span::styled(
                         "u",
                         Style::default()
                             .add_modifier(Modifier::BOLD)
-                            .fg(Color::Yellow),
+                            .fg(Color::Blue),
                     ),
                     Span::raw("pload config, "),
                     Span::styled(
-                        "s",
+                        "p",
                         Style::default()
                             .add_modifier(Modifier::BOLD)
-                            .fg(Color::Yellow),
+                            .fg(Color::Red),
                     ),
-                    Span::raw("ave, "),
-                    Span::styled(
-                        "t",
-                        Style::default()
-                            .add_modifier(Modifier::BOLD)
-                            .fg(Color::Yellow),
-                    ),
-                    Span::raw("oggle persistent, "),
-                    Span::styled(
-                        "k",
-                        Style::default()
-                            .add_modifier(Modifier::BOLD)
-                            .fg(Color::Yellow),
-                    ),
-                    Span::raw("ill, "),
+                    Span::raw("ersist, "),
                     Span::styled(
                         "h",
                         Style::default()
                             .add_modifier(Modifier::BOLD)
                             .fg(Color::Yellow),
                     ),
-                    Span::raw("elp."),
+                    Span::raw("elp, "),
+                    Span::styled(
+                        "Esc",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Green),
+                    ),
+                    Span::raw(" to go back."),
                 ],
-                Style::default().add_modifier(Modifier::SLOW_BLINK),
+                Style::default(),
             ),
             InputMode::ShowHelp => (
                 vec![
@@ -334,6 +358,37 @@ impl App {
                     ),
                     Span::raw(" to record the message"),
                 ],
+                Style::default(),
+            ),
+            InputMode::ShowSuccess => (
+                vec![
+                    Span::styled(
+                        "Success: ",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Green),
+                    ),
+                    Span::raw(&self.msg),
+                ],
+                Style::default(),
+            ),
+            InputMode::ShowError => (
+                vec![
+                    Span::styled(
+                        "Error: ",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Red),
+                    ),
+                    Span::raw(&self.msg),
+                ],
+                Style::default(),
+            ),
+            InputMode::UploadPrompt => (
+                vec![Span::raw(format!(
+                    "Uploading config '{}' to opilio board? Y/N:",
+                    self.config_path
+                ))],
                 Style::default(),
             ),
         };

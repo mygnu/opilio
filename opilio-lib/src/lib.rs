@@ -60,10 +60,10 @@ pub enum ConfId {
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
 pub struct Stats {
-    pub rpm1: f32,
-    pub rpm2: f32,
-    pub rpm3: f32,
-    pub rpm4: f32,
+    pub pump1_rpm: f32,
+    pub fan1_rpm: f32,
+    pub fan2_rpm: f32,
+    pub fan3_rpm: f32,
     pub liquid_temp: f32,
     pub ambient_temp: f32,
 }

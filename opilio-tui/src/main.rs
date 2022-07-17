@@ -88,6 +88,7 @@ fn run_app<B: Backend>(
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
             .unwrap_or_else(|| Duration::from_secs(0));
+        let current_input_mode = app.input_mode;
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
@@ -95,8 +96,23 @@ fn run_app<B: Backend>(
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Char('h') => app.input_mode = InputMode::ShowHelp,
                     KeyCode::Char('u') => {
-                        if let Err(e) = app.upload_config() {
-                            log::error!("Error uploading config, {}", e);
+                        app.input_mode = InputMode::UploadPrompt
+                    }
+                    KeyCode::Char('y') | KeyCode::Char('Y') => {
+                        match current_input_mode {
+                            InputMode::UploadPrompt => {
+                                match app.upload_config() {
+                                    Err(e) => {
+                                        app.msg = e.to_string();
+                                        app.input_mode = InputMode::ShowError
+                                    }
+                                    _ => {
+                                        app.msg = "Uploaded config, setting will not survive power failure unless persisted!".to_string();
+                                        app.input_mode = InputMode::ShowSuccess
+                                    }
+                                }
+                            }
+                            _ => (),
                         }
                     }
                     _ => (),

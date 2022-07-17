@@ -22,10 +22,10 @@ fn should_fail_with_invalid_pair() {
     let empty = Data::Empty;
     let config = Data::Config(Config::default());
     let stats = Data::Stats(Stats {
-        rpm1: f32::MAX,
-        rpm2: f32::MAX,
-        rpm3: f32::MAX,
-        rpm4: f32::MAX,
+        pump1_rpm: f32::MAX,
+        fan1_rpm: f32::MAX,
+        fan2_rpm: f32::MAX,
+        fan3_rpm: f32::MAX,
         liquid_temp: f32::MAX,
         ambient_temp: f32::MAX,
     });
@@ -81,10 +81,10 @@ fn should_serde_stats_data() {
     let otw = OTW::new(
         Cmd::Stats,
         Data::Stats(Stats {
-            rpm1: 2.0,
-            rpm2: 0.0,
-            rpm3: 1.0,
-            rpm4: 20.0,
+            pump1_rpm: 2.0,
+            fan1_rpm: 0.0,
+            fan2_rpm: 1.0,
+            fan3_rpm: 20.0,
             liquid_temp: 23.0,
             ambient_temp: 20.0,
         }),
@@ -99,10 +99,10 @@ fn should_serde_stats_data() {
     let otw = OTW::new(
         Cmd::Stats,
         Data::Stats(Stats {
-            rpm1: 0.0,
-            rpm2: 0.0,
-            rpm3: 0.0,
-            rpm4: 0.0,
+            pump1_rpm: 0.0,
+            fan1_rpm: 0.0,
+            fan2_rpm: 0.0,
+            fan3_rpm: 0.0,
             liquid_temp: 0.1,
             ambient_temp: 0.0,
         }),
@@ -118,10 +118,10 @@ fn should_serde_stats_data() {
     let otw = OTW::new(
         Cmd::Stats,
         Data::Stats(Stats {
-            rpm1: f32::MAX,
-            rpm2: f32::MAX,
-            rpm3: f32::MAX,
-            rpm4: f32::MAX,
+            pump1_rpm: f32::MAX,
+            fan1_rpm: f32::MAX,
+            fan2_rpm: f32::MAX,
+            fan3_rpm: f32::MAX,
             liquid_temp: f32::MAX,
             ambient_temp: f32::MAX,
         }),
