@@ -529,6 +529,7 @@ dependencies = [
  "heapless",
  "postcard",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -18,12 +18,15 @@ impl OTW {
             Cmd::GetStats | Cmd::SaveConfig | Cmd::GetConfig => {
                 matches!(data, Data::Empty)
             }
-            Cmd::Config | Cmd::SetConfig => {
+            Cmd::UploadSetting => {
+                matches!(data, Data::Setting(_))
+            }
+            Cmd::Config => {
                 matches!(data, Data::Config(_))
             }
             Cmd::Result => matches!(data, Data::Result(_)),
             Cmd::Stats => matches!(data, Data::Stats(_)),
-            Cmd::SetStandby => matches!(data, Data::U64(_)),
+            Cmd::UploadGeneral => matches!(data, Data::General(_)),
         } {
             Ok(Self { cmd, data })
         } else {
@@ -49,13 +52,12 @@ impl OTW {
         let command = from_bytes(&slice[0..2])?;
 
         let data = match command {
-            Cmd::Config | Cmd::SetConfig => {
-                Data::Config(from_bytes(&slice[2..])?)
-            }
+            Cmd::UploadSetting => Data::Setting(from_bytes(&slice[2..])?),
+            Cmd::Config => Data::Config(from_bytes(&slice[2..])?),
             Cmd::Stats => Data::Stats(from_bytes(&slice[2..])?),
-            Cmd::GetConfig => Data::ConfigId(from_bytes(&slice[2..])?),
+            Cmd::GetConfig => Data::SettingId(from_bytes(&slice[2..])?),
             Cmd::Result => Data::Result(from_bytes(&slice[2..])?),
-            Cmd::SetStandby => Data::U64(from_bytes(&slice[2..])?),
+            Cmd::UploadGeneral => Data::General(from_bytes(&slice[2..])?),
             Cmd::GetStats | Cmd::SaveConfig => Data::Empty,
         };
         Ok(Self { cmd: command, data })

@@ -5,7 +5,9 @@ use std::{
 
 use anyhow::{anyhow, bail, Ok, Result};
 use log::info;
-use opilio_lib::{Cmd, Config, Data, Stats, MAX_SERIAL_DATA_SIZE, OTW};
+use opilio_lib::{
+    Cmd, Config, Data, FanSetting, Stats, MAX_SERIAL_DATA_SIZE, OTW,
+};
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
 
 pub struct OpilioSerial {
@@ -44,8 +46,32 @@ impl OpilioSerial {
 
     pub fn upload_config(&mut self, config: Config) -> Result<()> {
         self.clear_buffers()?;
-        let cmd = OTW::new(Cmd::SetConfig, Data::Config(config))?.to_vec()?;
-        log::info!("sending config bytes {:?}", cmd);
+        let cmd = OTW::new(
+            Cmd::UploadGeneral,
+            Data::General(config.general.clone()),
+        )?
+        .to_vec()?;
+        log::info!("sending general bytes {:?}", cmd);
+        self.port.write_all(&cmd)?;
+
+        let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
+        }
+
+        // upload rest of the settings one by one
+        for setting in config.settings.iter() {
+            self.upload_setting(setting)?;
+        }
+        Ok(())
+    }
+
+    pub fn upload_setting(&mut self, setting: &FanSetting) -> Result<()> {
+        self.clear_buffers()?;
+        let cmd = OTW::new(Cmd::UploadSetting, Data::Setting(setting.clone()))?
+            .to_vec()?;
+        log::info!("sending setting bytes {:?}", cmd);
         self.port.write_all(&cmd)?;
 
         let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
@@ -98,7 +124,7 @@ fn open_port(vid: u16, pid: u16) -> Result<Box<dyn SerialPort>> {
         })
         .map(|p| p.port_name)
         .ok_or_else(|| {
-            anyhow!("Can't find port with vid {:#06x} pid {:#06x}", vid, pid)
+            anyhow!("Port with vid {:#06x} pid {:#06x}, not found", vid, pid)
         })?;
     let port = serialport::new(port_name, 115_200)
         .timeout(Duration::from_secs(1))
