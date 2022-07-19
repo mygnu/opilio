@@ -7,10 +7,8 @@ use tui::{
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
 };
 
-use crate::{
-    config::{config_file, from_disk},
-    serial_port::OpilioSerial,
-};
+use crate::config::{config_file, from_disk};
+use opilio_tui::OpilioSerial;
 
 const TIME_SPAN: f64 = 60.0;
 const TICK_DISTANCE: f64 = 0.5;
@@ -29,6 +27,7 @@ pub enum InputMode {
     Normal,
     ShowHelp,
     UploadPrompt,
+    SavePrompt,
     ShowError,
     ShowSuccess,
 }
@@ -58,7 +57,7 @@ impl App {
         let fan3 = vec![(ZERO, ZERO)];
         let liquid_temp = vec![(ZERO, ZERO)];
         let ambient_temp = vec![(ZERO, ZERO)];
-        let mut serial = OpilioSerial::new(VID, PID)?;
+        let mut serial = OpilioSerial::new()?;
         let config_path = config_file()?.display().to_string();
 
         let config = serial.get_config()?;
@@ -86,6 +85,12 @@ impl App {
         let config = from_disk()?;
         log::info!("{:#?}", &config);
         self.serial.upload_config(config)?;
+
+        Ok(())
+    }
+
+    pub fn save_config(&mut self) -> Result<()> {
+        self.serial.save_config()?;
 
         Ok(())
     }
@@ -310,33 +315,33 @@ impl App {
             InputMode::Normal => (
                 vec![
                     Span::styled(
-                        "q",
-                        Style::default()
-                            .add_modifier(Modifier::BOLD)
-                            .fg(Color::Yellow),
-                    ),
-                    Span::raw("uit, "),
-                    Span::styled(
-                        "u",
+                        "U",
                         Style::default()
                             .add_modifier(Modifier::BOLD)
                             .fg(Color::Blue),
                     ),
-                    Span::raw("pload config, "),
+                    Span::raw("pload, "),
                     Span::styled(
-                        "p",
+                        "S",
                         Style::default()
                             .add_modifier(Modifier::BOLD)
                             .fg(Color::Red),
                     ),
-                    Span::raw("ersist, "),
+                    Span::raw("ave, "),
                     Span::styled(
-                        "h",
+                        "H",
                         Style::default()
                             .add_modifier(Modifier::BOLD)
                             .fg(Color::Yellow),
                     ),
                     Span::raw("elp, "),
+                    Span::styled(
+                        "Q",
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .fg(Color::Yellow),
+                    ),
+                    Span::raw("uit, "),
                     Span::styled(
                         "Esc",
                         Style::default()
@@ -389,9 +394,26 @@ impl App {
             ),
             InputMode::UploadPrompt => (
                 vec![Span::raw(format!(
-                    "Uploading config '{}' to opilio board? Y/N:",
+                    "Uploading config '{}' to opilio board?",
                     self.config_path
-                ))],
+                )), Span::styled(
+                    " Y/N:",
+                    Style::default()
+                        .add_modifier(Modifier::BOLD)
+                        .fg(Color::Red),
+                ),],
+                Style::default(),
+            ),
+            InputMode::SavePrompt => (
+                vec![Span::raw(format!(
+                    "Would you like to save current configuration on controller?",
+                )),
+                Span::styled(
+                    " Y/N:",
+                    Style::default()
+                        .add_modifier(Modifier::BOLD)
+                        .fg(Color::Red),
+                ),],
                 Style::default(),
             ),
         };

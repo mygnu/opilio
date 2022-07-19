@@ -5,9 +5,9 @@ use log::error;
 
 mod app;
 mod config;
-mod serial_port;
 
 use std::{
+    fs,
     io::{self, BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     sync::{
@@ -38,8 +38,7 @@ fn main() -> Result<()> {
     let shutdown = Arc::new(AtomicBool::new(false));
     listen_tcp(shutdown.clone());
 
-    // fs::write("opilio.log", "")?;
-    fast_log::init(Config::new().file("opilio.log"))?;
+    fast_log::init(Config::new().file("/tmp/opilio.log"))?;
 
     let mut app = App::new()?;
     // setup terminal
@@ -82,6 +81,7 @@ fn run_app<B: Backend>(
     shutdown: Arc<AtomicBool>,
 ) -> Result<()> {
     let mut last_tick = Instant::now();
+    let mut prompt_tick = 0;
     loop {
         terminal.draw(|f| ui(f, &app))?;
 
@@ -98,6 +98,9 @@ fn run_app<B: Backend>(
                     KeyCode::Char('u') => {
                         app.input_mode = InputMode::UploadPrompt
                     }
+                    KeyCode::Char('s') => {
+                        app.input_mode = InputMode::SavePrompt
+                    }
                     KeyCode::Char('y') | KeyCode::Char('Y') => {
                         match current_input_mode {
                             InputMode::UploadPrompt => {
@@ -107,11 +110,21 @@ fn run_app<B: Backend>(
                                         app.input_mode = InputMode::ShowError
                                     }
                                     _ => {
-                                        app.msg = "Uploaded config, setting will not survive power failure unless persisted!".to_string();
+                                        app.msg = "Uploaded config, settings will not survive power cycle, unless persisted!".to_string();
                                         app.input_mode = InputMode::ShowSuccess
                                     }
                                 }
                             }
+                            InputMode::SavePrompt => match app.save_config() {
+                                Err(e) => {
+                                    app.msg = e.to_string();
+                                    app.input_mode = InputMode::ShowError
+                                }
+                                _ => {
+                                    app.msg = "Uploaded config, settings will not survive power cycle, unless persisted!".to_string();
+                                    app.input_mode = InputMode::ShowSuccess
+                                }
+                            },
                             _ => (),
                         }
                     }
@@ -121,6 +134,19 @@ fn run_app<B: Backend>(
         }
         if last_tick.elapsed() >= tick_rate {
             app.on_tick();
+            if matches!(
+                current_input_mode,
+                InputMode::ShowSuccess
+                    | InputMode::ShowError
+                    | InputMode::ShowHelp
+            ) {
+                prompt_tick += 1;
+            } else {
+                prompt_tick = 0;
+            }
+            if prompt_tick > 10 {
+                app.input_mode = InputMode::Normal;
+            }
             last_tick = Instant::now();
         }
         if shutdown.load(Ordering::Relaxed) {
@@ -134,9 +160,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Length(30),
-                Constraint::Length(25),
-                Constraint::Length(2),
+                Constraint::Percentage(50),
+                Constraint::Percentage(40),
+                Constraint::Percentage(10),
             ]
             .as_ref(),
         )
@@ -159,8 +185,8 @@ fn listen_tcp(bool: Arc<AtomicBool>) {
         stream.write_all(QUIT.as_bytes()).ok();
         thread::sleep(Duration::from_secs(1));
     }
+    let listener = TcpListener::bind(SOCKET_ADDR).unwrap();
     thread::spawn(move || {
-        let listener = TcpListener::bind(SOCKET_ADDR).unwrap();
         for stream in listener.incoming() {
             log::info!("connection");
             match stream {

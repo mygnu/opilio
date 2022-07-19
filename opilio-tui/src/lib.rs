@@ -1,3 +1,4 @@
+pub use opilio_lib::{PID, VID};
 use std::{
     io::{Read, Write},
     time::Duration,
@@ -17,7 +18,9 @@ pub struct OpilioSerial {
 }
 
 impl OpilioSerial {
-    pub fn new(vid: u16, pid: u16) -> Result<Self> {
+    pub fn new() -> Result<Self> {
+        let vid = VID;
+        let pid = PID;
         let port = open_port(vid, pid)?;
         Ok(Self { vid, pid, port })
     }
@@ -63,6 +66,20 @@ impl OpilioSerial {
         // upload rest of the settings one by one
         for setting in config.settings.iter() {
             self.upload_setting(setting)?;
+        }
+        Ok(())
+    }
+
+    pub fn save_config(&mut self) -> Result<()> {
+        self.clear_buffers()?;
+        let cmd = OTW::new(Cmd::SaveConfig, Data::Empty)?.to_vec()?;
+        log::info!("saving config {:?}", cmd);
+        self.port.write_all(&cmd)?;
+
+        let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
         }
         Ok(())
     }

@@ -1,0 +1,15 @@
+[package]
+name = "opilio-daemon"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+daemonize-me = "2.0"
+opilio-tui = { path = "../opilio-tui"}
+dirs = "4.0"
+
+[[bin]]
+name = "opilio-daemon"
+path = "src/main.rs"
