@@ -27,10 +27,10 @@ pub fn from_disk() -> Result<Config> {
     }
 }
 
-pub fn save_config(config: &Config) -> Result<()> {
-    let path = config_file()?;
-    let data = serde_json::to_string_pretty(&config)?;
+// pub fn save_config(config: &Config) -> Result<()> {
+//     let path = config_file()?;
+//     let data = serde_json::to_string_pretty(&config)?;
 
-    fs::write(path, data)?;
-    Ok(())
-}
+//     fs::write(path, data)?;
+//     Ok(())
+// }

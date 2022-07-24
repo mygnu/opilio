@@ -7,7 +7,6 @@ mod app;
 mod config;
 
 use std::{
-    fs,
     io::{self, BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     sync::{

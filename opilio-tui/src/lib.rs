@@ -7,7 +7,7 @@ use std::{
 use anyhow::{anyhow, bail, Ok, Result};
 use log::info;
 use opilio_lib::{
-    Cmd, Config, Data, FanSetting, Stats, MAX_SERIAL_DATA_SIZE, OTW,
+    Cmd, Config, Data, DataRef, FanSetting, Stats, MAX_SERIAL_DATA_SIZE, OTW,
 };
 use serialport::{ClearBuffer, SerialPort, SerialPortType};
 
@@ -28,7 +28,7 @@ impl OpilioSerial {
     pub fn get_stats(&mut self) -> Result<Stats> {
         self.clear_buffers()?;
 
-        let cmd = OTW::new(Cmd::GetStats, Data::Empty)?.to_vec()?;
+        let cmd = OTW::serialised_vec(Cmd::GetStats, DataRef::Empty)?;
         self.port.write_all(&cmd)?;
 
         let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
@@ -37,11 +37,9 @@ impl OpilioSerial {
             bail!("Failed to read any bytes from the port")
         }
 
-        // info!("data over serial: {:?}", buffer);
-
-        let data = OTW::from_bytes(&buffer)?;
-        info!("Received {:?}", data);
-        match data.data() {
+        let response = OTW::from_bytes(&buffer)?;
+        info!("Received {:?}", response);
+        match response.data {
             Data::Stats(s) => Ok(s),
             _ => bail!("Failed to get data"),
         }
@@ -49,11 +47,11 @@ impl OpilioSerial {
 
     pub fn upload_config(&mut self, config: Config) -> Result<()> {
         self.clear_buffers()?;
-        let cmd = OTW::new(
+        let cmd = OTW::serialised_vec(
             Cmd::UploadGeneral,
-            Data::General(config.general.clone()),
-        )?
-        .to_vec()?;
+            DataRef::General(&config.general),
+        )?;
+
         log::info!("sending general bytes {:?}", cmd);
         self.port.write_all(&cmd)?;
 
@@ -72,7 +70,7 @@ impl OpilioSerial {
 
     pub fn save_config(&mut self) -> Result<()> {
         self.clear_buffers()?;
-        let cmd = OTW::new(Cmd::SaveConfig, Data::Empty)?.to_vec()?;
+        let cmd = OTW::serialised_vec(Cmd::SaveConfig, DataRef::Empty)?;
         log::info!("saving config {:?}", cmd);
         self.port.write_all(&cmd)?;
 
@@ -86,8 +84,8 @@ impl OpilioSerial {
 
     pub fn upload_setting(&mut self, setting: &FanSetting) -> Result<()> {
         self.clear_buffers()?;
-        let cmd = OTW::new(Cmd::UploadSetting, Data::Setting(setting.clone()))?
-            .to_vec()?;
+        let cmd =
+            OTW::serialised_vec(Cmd::UploadSetting, DataRef::Setting(setting))?;
         log::info!("sending setting bytes {:?}", cmd);
         self.port.write_all(&cmd)?;
 
@@ -96,14 +94,14 @@ impl OpilioSerial {
         if self.port.read(buffer.as_mut_slice())? == 0 {
             bail!("Failed to read any bytes from the port")
         }
-        let data = OTW::from_bytes(&buffer)?;
-        log::info!("{:?}", data);
+        let response = OTW::from_bytes(&buffer)?;
+        log::info!("{:?}", response);
         Ok(())
     }
 
     pub fn get_config(&mut self) -> Result<Config> {
         self.clear_buffers()?;
-        let cmd = OTW::new(Cmd::GetConfig, Data::Empty)?.to_vec()?;
+        let cmd = OTW::serialised_vec(Cmd::GetConfig, DataRef::Empty)?;
         self.port.write_all(&cmd)?;
 
         let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
@@ -111,8 +109,8 @@ impl OpilioSerial {
         if self.port.read(buffer.as_mut_slice())? == 0 {
             bail!("Failed to read any bytes from the port")
         }
-        let data = OTW::from_bytes(&buffer)?;
-        match data.data() {
+        let response = OTW::from_bytes(&buffer)?;
+        match response.data {
             Data::Config(s) => Ok(s),
             _ => bail!("Failed to get data"),
         }

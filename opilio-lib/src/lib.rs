@@ -39,7 +39,18 @@ pub enum Cmd {
     UploadGeneral = 9,
 }
 
-#[derive(Format, Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Serialize)]
+pub enum DataRef<'a> {
+    SettingId(&'a Id),
+    Setting(&'a FanSetting),
+    Config(&'a Config),
+    Stats(&'a Stats),
+    Result(&'a Response),
+    General(&'a GeneralConfig),
+    Empty,
+}
+
+#[derive(Format, Debug, Deserialize, PartialEq)]
 pub enum Data {
     SettingId(Id),
     Setting(FanSetting),
@@ -82,7 +93,7 @@ impl FanSetting {
         Self {
             id,
             enabled: true,
-            curve: [(15.0, 0.0), (20.0, 30.0), (25.0, 50.0), (40.0, 100.0)],
+            curve: [(25.0, 0.0), (30.0, 30.0), (35.0, 50.0), (40.0, 100.0)],
         }
     }
 
