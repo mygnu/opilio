@@ -44,6 +44,7 @@ impl OTW {
         }
     }
 
+    // returns Result<
     pub fn serialised_ok() -> &'static [u8; 3] {
         &[6_u8, 4, 0]
     }

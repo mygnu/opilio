@@ -1,29 +1,6 @@
 use opilio_lib::*;
 
 #[test]
-fn should_serde_empty_data() {
-    let otw = OTW {
-        cmd: Cmd::GetStats,
-        data: Data::Empty,
-    };
-    println!("{:?}", otw);
-    let vec = otw.to_vec().unwrap();
-    println!("{:?}", vec);
-    let otwb = OTW::from_bytes(&vec).unwrap();
-    assert_eq!(otw, otwb);
-
-    let otw = OTW {
-        cmd: Cmd::SaveConfig,
-        data: Data::Empty,
-    };
-    println!("{:?}", otw);
-    let vec = otw.to_vec().unwrap();
-    println!("{:?}", vec);
-    let otwb = OTW::from_bytes(&vec).unwrap();
-    assert_eq!(otw, otwb);
-}
-
-#[test]
 fn should_fail_with_invalid_pair() {
     let fan = FanSetting::new(Id::F2);
     let default_config = Config::default();
@@ -85,116 +62,41 @@ fn should_fail_with_invalid_pair() {
     // consider a testing framework at this point
 }
 
-// #[test]
-// fn should_serde_stats_data() {
-//     let otw = OTW::new(
-//         Cmd::Stats,
-//         Data::Stats(Stats {
-//             pump1_rpm: 2.0,
-//             fan1_rpm: 0.0,
-//             fan2_rpm: 1.0,
-//             fan3_rpm: 20.0,
-//             liquid_temp: 23.0,
-//             ambient_temp: 20.0,
-//         }),
-//     )
-//     .unwrap();
-//     println!("{:?}", otw);
-//     let vec = otw.to_vec().unwrap();
-//     println!("{:?}", vec);
-//     let otwb = OTW::from_bytes(&vec).unwrap();
-//     assert_eq!(otw, otwb);
+#[test]
+fn should_serde_stats_data() {
+    let stats = Stats {
+        pump1_rpm: 2.0,
+        fan1_rpm: 0.0,
+        fan2_rpm: 1.0,
+        fan3_rpm: 20.0,
+        liquid_temp: 23.0,
+        ambient_temp: 20.0,
+    };
 
-//     let otw = OTW::new(
-//         Cmd::Stats,
-//         Data::Stats(Stats {
-//             pump1_rpm: 0.0,
-//             fan1_rpm: 0.0,
-//             fan2_rpm: 0.0,
-//             fan3_rpm: 0.0,
-//             liquid_temp: 0.1,
-//             ambient_temp: 0.0,
-//         }),
-//     )
-//     .unwrap();
-
-//     println!("{:?}", otw);
-//     let vec = otw.to_vec().unwrap();
-//     println!("{:?}", vec);
-//     let otwb = OTW::from_bytes(&vec).unwrap();
-//     assert_eq!(otw, otwb);
-
-//     let otw = OTW::new(
-//         Cmd::Stats,
-//         Data::Stats(Stats {
-//             pump1_rpm: f32::MAX,
-//             fan1_rpm: f32::MAX,
-//             fan2_rpm: f32::MAX,
-//             fan3_rpm: f32::MAX,
-//             liquid_temp: f32::MAX,
-//             ambient_temp: f32::MAX,
-//         }),
-//     )
-//     .unwrap();
-//     println!("{:?}", otw);
-//     let vec = otw.to_vec().unwrap();
-//     println!("{:?}", vec);
-//     let otwb = OTW::from_bytes(&vec).unwrap();
-//     assert_eq!(otw, otwb);
-// }
-
-// #[test]
-// fn should_serde_config_data() {
-//     let otw = OTW::new(Cmd::Config, Data::Config(Config::default())).unwrap();
-//     println!("{:?}", otw);
-//     let vec = otw.to_vec().unwrap();
-//     println!("{:?}", vec);
-//     let otwb = OTW::from_bytes(&vec).unwrap();
-//     assert_eq!(otw, otwb);
-
-//     let otw = OTW::new(Cmd::Config, Data::Config(Config::default())).unwrap();
-//     println!("{:?}", otw);
-//     let vec = otw.to_vec().unwrap();
-//     assert!(vec.len() <= MAX_SERIAL_DATA_SIZE);
-//     println!("{:?}", vec);
-//     let otwb = OTW::from_bytes(&vec).unwrap();
-//     assert_eq!(otw, otwb);
-// }
-
-// #[test]
-// fn should_serde_standby() {
-//     let otw = OTW::new(
-//         Cmd::UploadGeneral,
-//         Data::General(GeneralConfig { sleep_after: 20 }),
-//     )
-//     .unwrap();
-//     println!("{:?}", otw);
-//     let vec = otw.to_vec().unwrap();
-//     println!("{:?}", vec);
-//     let otwb = OTW::from_bytes(&vec).unwrap();
-//     assert_eq!(otw, otwb);
-// }
+    let vec = OTW::serialised_vec(Cmd::Stats, DataRef::Stats(&stats)).unwrap();
+    println!("{:?}", vec);
+    let otwb = OTW::from_bytes(&vec).unwrap();
+    assert_eq!(
+        otwb,
+        OTW {
+            cmd: Cmd::Stats,
+            data: Data::Stats(stats)
+        }
+    );
+}
 
 #[test]
 fn should_serde_configs() {
-    let mut configs = Config::default();
+    let configs = Config::default();
     println!("{:#?}", configs);
     println!("{}", serde_json::to_string_pretty(&configs).unwrap());
     let vec = configs.to_vec().unwrap();
     println!("{}\n {:?}", vec.len(), vec);
     let res = Config::from_bytes(&vec).unwrap();
     assert_eq!(res, configs);
-    // configs.data[0] = FanSetting {
-    //     id: Id::P1,
-    //     min_temp: 0.0,
-    //     max_temp: 0.0,
-    //     min_duty: 0.0,
-    //     max_duty: 0.0,
-    //     enabled: false,
-    // };
-    // println!("{:#?}", configs);
+
     let vec = configs.to_vec().unwrap();
-    // println!("{}\n {:?}", vec.len(), vec);
+
     let res = Config::from_bytes(&vec).unwrap();
     assert_eq!(res, configs);
 }
@@ -237,4 +139,12 @@ fn should_create_default_ok() {
 
     let otw = OTW::from_bytes(bytes).unwrap();
     println!("{otw:?}");
+
+    assert_eq!(
+        otw,
+        OTW {
+            cmd: Cmd::Result,
+            data: Data::Result(Response::Ok)
+        }
+    )
 }

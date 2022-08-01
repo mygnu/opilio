@@ -39,7 +39,7 @@ pub enum Cmd {
     UploadGeneral = 9,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub enum DataRef<'a> {
     SettingId(&'a Id),
     Setting(&'a FanSetting),
