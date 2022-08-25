@@ -75,9 +75,9 @@ fn should_serde_stats_data() {
 
     let vec = OTW::serialised_vec(Cmd::Stats, DataRef::Stats(&stats)).unwrap();
     println!("{:?}", vec);
-    let otwb = OTW::from_bytes(&vec).unwrap();
+    let otw = OTW::from_bytes(&vec).unwrap();
     assert_eq!(
-        otwb,
+        otw,
         OTW {
             cmd: Cmd::Stats,
             data: Data::Stats(stats)
