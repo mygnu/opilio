@@ -77,6 +77,7 @@ pub struct Stats {
     pub fan3_rpm: f32,
     pub liquid_temp: f32,
     pub ambient_temp: f32,
+    pub liquid_out_temp: f32,
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]

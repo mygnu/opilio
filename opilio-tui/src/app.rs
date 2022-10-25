@@ -37,13 +37,14 @@ pub struct App {
     serial: OpilioSerial,
     last_point: f64,
     liquid_temp: Vec<(f64, f64)>,
+    liquid_out_temp: Vec<(f64, f64)>,
     ambient_temp: Vec<(f64, f64)>,
     pump1: Vec<(f64, f64)>,
     fan1: Vec<(f64, f64)>,
     fan2: Vec<(f64, f64)>,
     fan3: Vec<(f64, f64)>,
     window: [f64; 2],
-    current_temps: [f64; 2],
+    current_temps: [f64; 3],
     current_rpms: [f64; 4],
     pub input_mode: InputMode,
     pub msg: String,
@@ -56,6 +57,7 @@ impl App {
         let fan2 = vec![(ZERO, ZERO)];
         let fan3 = vec![(ZERO, ZERO)];
         let liquid_temp = vec![(ZERO, ZERO)];
+        let liquid_out_temp = vec![(ZERO, ZERO)];
         let ambient_temp = vec![(ZERO, ZERO)];
         let mut serial = OpilioSerial::new()?;
         let config_path = config_file()?.display().to_string();
@@ -71,9 +73,10 @@ impl App {
             fan3,
             window: [ZERO, TIME_SPAN],
             liquid_temp,
+            liquid_out_temp,
             config_path,
             ambient_temp,
-            current_temps: [ZERO; 2],
+            current_temps: [ZERO; 3],
             current_rpms: [ZERO; 4],
             last_point: TIME_SPAN,
             input_mode: InputMode::default(),
@@ -111,24 +114,27 @@ impl App {
         self.last_point += TICK_DISTANCE;
         match self.serial.get_stats() {
             Ok(stats) => {
-                let [current_liquid, current_ambient] = self.current_temps;
+                let [current_liquid, current_ambient, current_liquid_out] =
+                    self.current_temps;
                 self.current_temps = [
-                    (stats.liquid_temp as f64 + current_liquid) / 2.0,
-                    (stats.ambient_temp as f64 + current_ambient) / 2.0,
+                    (stats.liquid_temp as f64 + current_liquid * 5.0) / 6.0,
+                    (stats.ambient_temp as f64 + current_ambient * 5.0) / 6.0,
+                    (stats.liquid_out_temp as f64 + current_liquid_out * 5.0)
+                        / 6.0,
                 ];
 
                 let [rpm1, rpm2, rpm3, rpm4] = self.current_rpms;
                 self.current_rpms = [
-                    (stats.pump1_rpm as f64 + rpm1) / 2.0,
-                    (stats.fan1_rpm as f64 + rpm2) / 2.0,
-                    (stats.fan2_rpm as f64 + rpm3) / 2.0,
-                    (stats.fan3_rpm as f64 + rpm4) / 2.0,
+                    (stats.pump1_rpm as f64 + rpm1 * 5.0) / 6.0,
+                    (stats.fan1_rpm as f64 + rpm2 * 5.0) / 6.0,
+                    (stats.fan2_rpm as f64 + rpm3 * 5.0) / 6.0,
+                    (stats.fan3_rpm as f64 + rpm4 * 5.0) / 6.0,
                 ];
             }
             Err(e) => {
                 log::error!("{:?}", e);
                 // no reading but graph is still ticking
-                self.current_temps = [ZERO, ZERO];
+                self.current_temps = [ZERO, ZERO, ZERO];
                 self.current_rpms = [ZERO, ZERO, ZERO, ZERO];
             }
         };
@@ -141,22 +147,30 @@ impl App {
             .push((self.last_point, self.current_temps[0]));
         self.ambient_temp
             .push((self.last_point, self.current_temps[1]));
+        self.liquid_out_temp
+            .push((self.last_point, self.current_temps[2]));
     }
 
     pub fn temp_chart(&self) -> Chart {
         let temp_datasets = vec![
             Dataset::default()
-                .name(format!("Liq: {:.2}°C", self.current_temps[0]))
+                .name(format!("Amb: {:.2}°C", self.current_temps[1]))
                 .marker(symbols::Marker::Braille)
-                .style(Style::default().fg(Color::Green))
+                .style(Style::default().fg(Color::Blue))
+                .graph_type(GraphType::Line)
+                .data(&self.ambient_temp),
+            Dataset::default()
+                .name(format!("Liq(I): {:.2}°C", self.current_temps[0]))
+                .marker(symbols::Marker::Braille)
+                .style(Style::default().fg(Color::Red))
                 .graph_type(GraphType::Line)
                 .data(&self.liquid_temp),
             Dataset::default()
-                .name(format!("Amb: {:.2}°C", self.current_temps[1]))
+                .name(format!("Liq(O): {:.2}°C", self.current_temps[2]))
                 .marker(symbols::Marker::Braille)
-                .style(Style::default().fg(Color::Yellow))
+                .style(Style::default().fg(Color::Green))
                 .graph_type(GraphType::Line)
-                .data(&self.ambient_temp),
+                .data(&self.liquid_out_temp),
         ];
         let temp_chart = Chart::new(temp_datasets)
             .block(

@@ -120,7 +120,8 @@ fn run_app<B: Backend>(
                                     app.input_mode = InputMode::ShowError
                                 }
                                 _ => {
-                                    app.msg = "Uploaded config, settings will not survive power cycle, unless persisted!".to_string();
+                                    app.msg = "Settings Persisted on Chip!"
+                                        .to_string();
                                     app.input_mode = InputMode::ShowSuccess
                                 }
                             },
