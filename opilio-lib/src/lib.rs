@@ -13,10 +13,9 @@ pub const MIN_TEMP: f32 = 15.0;
 pub const MAX_TEMP: f32 = 50.0;
 
 pub const CONFIG_SIZE: usize = 18;
-pub const CONFIGS_SIZE: usize = 96; // 76 bytes currently but can expand
 pub const STATS_DATA_SIZE: usize = 20;
-pub const MAX_SERIAL_DATA_SIZE: usize = 128;
-pub const DEFAULT_SLEEP_AFTER_MS: u64 = 60 * 5 * 1000; // five minutes
+pub const MAX_SERIAL_DATA_SIZE: usize = 256;
+pub const DEFAULT_SLEEP_AFTER: u32 = 60 * 5; // five minutes
 
 // requested from https:://pid.codes
 // https://github.com/pidcodes/pidcodes.github.com/pull/751
@@ -30,28 +29,40 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, Copy, Clone, Format, Serialize, Deserialize, PartialEq)]
 pub enum Cmd {
-    SetConfig = 1,
+    UploadSetting = 1,
     GetConfig = 2,
     SaveConfig = 3,
     GetStats = 4,
     Stats = 5,
     Config = 6,
-    Result = 7,
-    SetStandby = 8,
+    Result = 8,
+    UploadGeneral = 9,
 }
 
-#[derive(Format, Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Serialize, Clone)]
+pub enum DataRef<'a> {
+    SettingId(&'a Id),
+    Setting(&'a FanSetting),
+    Config(&'a Config),
+    Stats(&'a Stats),
+    Result(&'a Response),
+    General(&'a GeneralConfig),
+    Empty,
+}
+
+#[derive(Format, Debug, Deserialize, PartialEq)]
 pub enum Data {
-    ConfigId(ConfId),
+    SettingId(Id),
+    Setting(FanSetting),
     Config(Config),
     Stats(Stats),
     Result(Response),
-    U64(u64),
+    General(GeneralConfig),
     Empty,
 }
 
 #[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub enum ConfId {
+pub enum Id {
     P1 = 1,
     F1 = 2,
     F2 = 3,
@@ -60,58 +71,68 @@ pub enum ConfId {
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
 pub struct Stats {
-    pub rpm1: f32,
-    pub rpm2: f32,
-    pub rpm3: f32,
-    pub rpm4: f32,
+    pub pump1_rpm: f32,
+    pub fan1_rpm: f32,
+    pub fan2_rpm: f32,
+    pub fan3_rpm: f32,
     pub liquid_temp: f32,
     pub ambient_temp: f32,
+    pub liquid_out_temp: f32,
 }
 
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
 pub struct FanSetting {
-    pub id: ConfId,
+    pub id: Id,
     pub enabled: bool,
-    pub min_duty: f32,
-    pub max_duty: f32,
-    pub min_temp: f32,
-    pub max_temp: f32,
+    pub curve: [(f32, f32); 4],
 }
 
+pub type TempDuty = (f32, f32);
+
 impl FanSetting {
-    pub fn new(id: ConfId) -> Self {
+    pub fn new(id: Id) -> Self {
         Self {
             id,
             enabled: true,
-            min_duty: MIN_DUTY_PERCENT,
-            max_duty: MAX_DUTY_PERCENT,
-            min_temp: MIN_TEMP,
-            max_temp: MAX_TEMP,
+            curve: [(25.0, 0.0), (30.0, 30.0), (35.0, 50.0), (40.0, 100.0)],
         }
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.min_duty >= MIN_DUTY_PERCENT
-            && self.max_duty <= MAX_DUTY_PERCENT
-            && self.min_temp >= MIN_TEMP
-            && self.max_temp <= MAX_TEMP
     }
 
     pub fn get_duty(&self, temp: f32, max_duty_value: u16) -> u16 {
-        if !self.enabled {
+        if !self.enabled || temp < self.curve[0].0 {
             return 0;
         }
 
-        let duty_percent = if temp <= self.min_temp {
-            0.0 // stop the fan if tem is really low
-        } else if temp >= self.max_temp {
-            self.max_duty
-        } else {
-            (self.max_duty - self.min_duty) * (temp - self.min_temp)
-                / (self.max_temp - self.min_temp)
-                + self.min_duty
+        let calculate =
+            |(min_temp, min_duty): TempDuty, (max_temp, max_duty): TempDuty| {
+                ((max_duty - min_duty) * (temp - min_temp)
+                    / (max_temp - min_temp))
+                    + min_duty
+            };
+
+        let duty_percent = if temp < self.curve[1].0 {
+            calculate(self.curve[0], self.curve[1])
+        } else if temp < self.curve[2].0 {
+            calculate(self.curve[1], self.curve[2])
+        } else if temp < self.curve[3].0 {
+            calculate(self.curve[2], self.curve[3])
+        }
+        // return max duty
+        else {
+            self.curve[3].1
         };
-        max_duty_value / 100 * duty_percent as u16
+        (max_duty_value as f32 / 100.0 * duty_percent) as u16
+    }
+
+    pub fn is_valid(&self) -> bool {
+        let mut previous = self.curve[0];
+        for current in &self.curve[1..] {
+            if current.0 < previous.0 || current.1 < previous.1 {
+                return false;
+            }
+            previous = *current;
+        }
+        return true;
     }
 }
 
@@ -122,39 +143,40 @@ pub enum Response {
 }
 
 #[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
+pub struct GeneralConfig {
+    pub sleep_after: u32,
+}
+
+#[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
 pub struct Config {
-    pub sleep_after_ms: u64,
-    pub data: Vec<FanSetting, 4>,
+    pub general: GeneralConfig,
+    pub settings: Vec<FanSetting, 4>,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let mut data: Vec<_, 4> = Vec::new();
-        data.push(FanSetting::new(ConfId::P1)).ok();
-        data.push(FanSetting::new(ConfId::F1)).ok();
-        data.push(FanSetting::new(ConfId::F2)).ok();
-        data.push(FanSetting::new(ConfId::F3)).ok();
+        let mut settings: Vec<_, 4> = Vec::new();
+        settings.push(FanSetting::new(Id::P1)).ok();
+        settings.push(FanSetting::new(Id::F1)).ok();
+        settings.push(FanSetting::new(Id::F2)).ok();
+        settings.push(FanSetting::new(Id::F3)).ok();
 
         Self {
-            data,
-            sleep_after_ms: DEFAULT_SLEEP_AFTER_MS,
+            settings,
+            general: GeneralConfig {
+                sleep_after: DEFAULT_SLEEP_AFTER,
+            },
         }
-    }
-}
-
-impl AsRef<Vec<FanSetting, 4>> for Config {
-    fn as_ref(&self) -> &Vec<FanSetting, 4> {
-        &self.data
     }
 }
 
 impl Config {
     pub fn is_valid(&self) -> bool {
-        self.as_ref().iter().all(|c| c.is_valid())
+        self.settings.iter().all(|c| c.is_valid())
     }
 
     pub fn set(&mut self, config: FanSetting) {
-        for c in self.data.iter_mut() {
+        for c in self.settings.iter_mut() {
             if c.id == config.id {
                 defmt::debug!("setting new config {:?}", config);
                 *c = config;
@@ -163,11 +185,11 @@ impl Config {
         }
     }
 
-    pub fn get(&self, fan_id: ConfId) -> Option<&FanSetting> {
-        self.data.iter().find(|&&c| c.id == fan_id)
+    pub fn get(&self, fan_id: Id) -> Option<&FanSetting> {
+        self.settings.iter().find(|&&c| c.id == fan_id)
     }
 
-    pub fn to_vec(&self) -> Result<Vec<u8, CONFIGS_SIZE>> {
+    pub fn to_vec(&self) -> Result<Vec<u8, MAX_SERIAL_DATA_SIZE>> {
         to_vec(&self).map_err(Error::from)
     }
 

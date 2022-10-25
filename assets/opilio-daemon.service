@@ -1,0 +1,10 @@
+[Unit]
+Description=opilio-daemon
+
+[Service]
+ExecStart=/usr/local/bin/opilio-daemon
+Type=exec
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

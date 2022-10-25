@@ -3,4 +3,7 @@
 members = [
     "opilio-lib",
     "opilio-tui",
+    "opilio-daemon"
 ]
+
+[default-run] 
