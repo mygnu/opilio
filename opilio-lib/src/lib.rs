@@ -83,7 +83,6 @@ pub struct Stats {
 #[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
 pub struct FanSetting {
     pub id: Id,
-    pub enabled: bool,
     pub curve: [(f32, f32); 4],
 }
 
@@ -93,16 +92,15 @@ impl FanSetting {
     pub fn new(id: Id) -> Self {
         Self {
             id,
-            enabled: true,
-            curve: [(25.0, 0.0), (30.0, 30.0), (35.0, 50.0), (40.0, 100.0)],
+            curve: if id == Id::P1 {
+                [(25.0, 50.0), (30.0, 60.0), (35.0, 80.0), (40.0, 100.0)]
+            } else {
+                [(25.0, 0.0), (30.0, 30.0), (35.0, 50.0), (40.0, 100.0)]
+            },
         }
     }
 
     pub fn get_duty(&self, temp: f32, max_duty_value: u16) -> u16 {
-        if !self.enabled || temp < self.curve[0].0 {
-            return 0;
-        }
-
         let calculate =
             |(min_temp, min_duty): TempDuty, (max_temp, max_duty): TempDuty| {
                 ((max_duty - min_duty) * (temp - min_temp)
