@@ -33,6 +33,9 @@ impl OTW {
             Cmd::Config => {
                 matches!(data, DataRef::Config(_))
             }
+            Cmd::UploadAll => {
+                matches!(data, DataRef::Config(_))
+            }
             Cmd::Result => matches!(data, DataRef::Result(_)),
             Cmd::Stats => matches!(data, DataRef::Stats(_)),
             Cmd::UploadGeneral => matches!(data, DataRef::General(_)),
@@ -57,11 +60,14 @@ impl OTW {
 
         let data = match command {
             Cmd::UploadSetting => Data::Setting(from_bytes(&slice[2..])?),
-            Cmd::Config => Data::Config(from_bytes(&slice[2..])?),
+            Cmd::Config | Cmd::UploadAll => {
+                Data::Config(from_bytes(&slice[2..])?)
+            }
             Cmd::Stats => Data::Stats(from_bytes(&slice[2..])?),
             Cmd::GetConfig => Data::SettingId(from_bytes(&slice[2..])?),
             Cmd::Result => Data::Result(from_bytes(&slice[2..])?),
             Cmd::UploadGeneral => Data::General(from_bytes(&slice[2..])?),
+
             Cmd::GetStats | Cmd::SaveConfig => Data::Empty,
         };
         Ok(Self { cmd: command, data })

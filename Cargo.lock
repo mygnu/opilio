@@ -514,6 +514,7 @@ checksum = "e82dad04139b71a90c080c8463fe0dc7902db5192d939bd0950f074d014339e1"
 name = "opilio-daemon"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "daemonize-me",
  "dirs",
  "opilio-tui",

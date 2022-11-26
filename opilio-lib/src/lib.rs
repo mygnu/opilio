@@ -37,6 +37,7 @@ pub enum Cmd {
     Config = 6,
     Result = 8,
     UploadGeneral = 9,
+    UploadAll = 10,
 }
 
 #[derive(Serialize, Clone)]
@@ -122,6 +123,10 @@ impl FanSetting {
         (max_duty_value as f32 / 100.0 * duty_percent) as u16
     }
 
+    pub fn is_fan(&self) -> bool {
+        !matches!(self.id, Id::P1)
+    }
+
     pub fn is_valid(&self) -> bool {
         let mut previous = self.curve[0];
         for current in &self.curve[1..] {
@@ -141,6 +146,13 @@ pub enum Response {
 }
 
 #[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
+pub struct SmartMode {
+    pub delta: f32,
+    pub upper_temp: f32,
+    pub pump_duty: f32,
+}
+
+#[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
 pub struct GeneralConfig {
     pub sleep_after: u32,
 }
@@ -148,6 +160,7 @@ pub struct GeneralConfig {
 #[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
 pub struct Config {
     pub general: GeneralConfig,
+    pub smart_mode: Option<SmartMode>,
     pub settings: Vec<FanSetting, 4>,
 }
 
@@ -160,10 +173,15 @@ impl Default for Config {
         settings.push(FanSetting::new(Id::F3)).ok();
 
         Self {
-            settings,
             general: GeneralConfig {
                 sleep_after: DEFAULT_SLEEP_AFTER,
             },
+            smart_mode: Some(SmartMode {
+                delta: 5.0,
+                upper_temp: 40.0,
+                pump_duty: 100.0,
+            }),
+            settings,
         }
     }
 }
@@ -194,4 +212,40 @@ impl Config {
     pub fn from_bytes(slice: &[u8]) -> Result<Self> {
         from_bytes(slice).map_err(Error::from)
     }
+}
+
+pub fn get_smart_duty(
+    temp: f32,
+    ambient_temp: f32,
+    min_delta: f32,
+    max_temp: f32,
+    max_duty_value: u16,
+    is_running: bool,
+) -> u16 {
+    let trigger_temp = ambient_temp + min_delta;
+
+    // if we are 2C below the minimum trigger delta turn off the fans
+    if is_running && temp <= trigger_temp - 2.0 {
+        return 0;
+    }
+
+    // if not running and temp delta isn't reached keep off
+    if !is_running && temp <= trigger_temp {
+        return 0;
+    }
+
+    // if we reached the max temp run at full speed.
+    if temp >= max_temp {
+        return max_duty_value;
+    }
+
+    let calculate = |(min_temp, min_duty): TempDuty,
+                     (max_t, max_duty): TempDuty| {
+        ((max_duty - min_duty) * (temp - min_temp) / (max_t - min_temp))
+            + min_duty
+    };
+
+    let duty_percent = calculate((trigger_temp, 20.0), (max_temp, 100.0));
+
+    (max_duty_value as f32 / 100.0 * duty_percent) as u16
 }

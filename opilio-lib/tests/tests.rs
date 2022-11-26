@@ -13,6 +13,7 @@ fn should_fail_with_invalid_pair() {
         fan2_rpm: f32::MAX,
         fan3_rpm: f32::MAX,
         liquid_temp: f32::MAX,
+        liquid_out_temp: f32::MAX,
         ambient_temp: f32::MAX,
     });
     let id = DataRef::SettingId(&Id::P1);
@@ -70,6 +71,7 @@ fn should_serde_stats_data() {
         fan2_rpm: 1.0,
         fan3_rpm: 20.0,
         liquid_temp: 23.0,
+        liquid_out_temp: 23.0,
         ambient_temp: 20.0,
     };
 
@@ -87,9 +89,20 @@ fn should_serde_stats_data() {
 
 #[test]
 fn should_serde_configs() {
-    let configs = Config::default();
+    let mut configs = Config::default();
     println!("{:#?}", configs);
-    println!("{}", serde_json::to_string_pretty(&configs).unwrap());
+    let vec = configs.to_vec().unwrap();
+    println!("{}\n {:?}", vec.len(), vec);
+    let res = Config::from_bytes(&vec).unwrap();
+    assert_eq!(res, configs);
+
+    let vec = configs.to_vec().unwrap();
+
+    let res = Config::from_bytes(&vec).unwrap();
+    assert_eq!(res, configs);
+
+    configs.smart_mode = None;
+    println!("{:#?}", configs);
     let vec = configs.to_vec().unwrap();
     println!("{}\n {:?}", vec.len(), vec);
     let res = Config::from_bytes(&vec).unwrap();
@@ -129,6 +142,73 @@ fn should_calculate_duty() {
         double_duties,
         duties.iter().map(|d| *d * 2).collect::<Vec<_>>()
     );
+}
+
+#[test]
+fn should_calculate_smart_duty() {
+    let duty = get_smart_duty(40.0, 20.0, 5.0, 100.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 36);
+
+    let duty = get_smart_duty(40.0, 20.0, 5.0, 40.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 100);
+
+    let duty = get_smart_duty(35.0, 20.0, 5.0, 100.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 30);
+
+    let duty = get_smart_duty(30.0, 20.0, 5.0, 100.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 25);
+
+    let duty = get_smart_duty(30.0, 20.0, 5.0, 40.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 46);
+
+    let duty = get_smart_duty(35.0, 20.0, 5.0, 40.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 73);
+
+    let duty = get_smart_duty(40.0, 20.0, 5.0, 100.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 36);
+
+    let duty = get_smart_duty(40.0, 20.0, 5.0, 40.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 100);
+
+    let duty = get_smart_duty(25.0, 20.0, 5.0, 100.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 20);
+
+    let duty = get_smart_duty(25.0, 20.0, 5.0, 100.0, 100, false);
+    println!("duty: {duty}");
+    assert_eq!(duty, 0);
+
+    let duty = get_smart_duty(25.1, 20.0, 5.0, 100.0, 100, false);
+    println!("duty: {duty}");
+    assert_eq!(duty, 20);
+
+    let duty = get_smart_duty(24.0, 20.0, 5.0, 100.0, 100, false);
+    println!("duty: {duty}");
+    assert_eq!(duty, 0);
+
+    let duty = get_smart_duty(20.0, 20.0, 5.0, 100.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 0);
+
+    let duty = get_smart_duty(22.0, 20.0, 5.0, 100.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 0);
+
+    let duty = get_smart_duty(23.0, 20.0, 5.0, 100.0, 100, true);
+    println!("duty: {duty}");
+    assert_eq!(duty, 0);
+
+    let duty = get_smart_duty(20.0, 20.0, 5.0, 100.0, 100, false);
+    println!("duty: {duty}");
+    assert_eq!(duty, 0);
 }
 
 #[test]
