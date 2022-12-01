@@ -16,6 +16,7 @@ pub const CONFIG_SIZE: usize = 18;
 pub const STATS_DATA_SIZE: usize = 20;
 pub const MAX_SERIAL_DATA_SIZE: usize = 256;
 pub const DEFAULT_SLEEP_AFTER: u32 = 60 * 5; // five minutes
+pub const SWITCH_TEMP_BUFFER: f32 = 1.0;
 
 // requested from https:://pid.codes
 // https://github.com/pidcodes/pidcodes.github.com/pull/751
@@ -147,7 +148,7 @@ pub enum Response {
 
 #[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
 pub struct SmartMode {
-    pub delta: f32,
+    pub trigger_above_ambient: f32,
     pub upper_temp: f32,
     pub pump_duty: f32,
 }
@@ -177,7 +178,7 @@ impl Default for Config {
                 sleep_after: DEFAULT_SLEEP_AFTER,
             },
             smart_mode: Some(SmartMode {
-                delta: 5.0,
+                trigger_above_ambient: 5.0,
                 upper_temp: 40.0,
                 pump_duty: 100.0,
             }),
@@ -224,8 +225,8 @@ pub fn get_smart_duty(
 ) -> u16 {
     let trigger_temp = ambient_temp + min_delta;
 
-    // if we are 2C below the minimum trigger delta turn off the fans
-    if is_running && temp <= trigger_temp - 2.0 {
+    // if we are 1C below the minimum trigger delta turn off
+    if is_running && temp <= trigger_temp - SWITCH_TEMP_BUFFER {
         return 0;
     }
 
