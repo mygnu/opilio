@@ -125,10 +125,10 @@ impl App {
 
                 let [rpm1, rpm2, rpm3, rpm4] = self.current_rpms;
                 self.current_rpms = [
-                    (stats.pump1_rpm as f64 + rpm1 * 5.0) / 6.0,
-                    (stats.fan1_rpm as f64 + rpm2 * 5.0) / 6.0,
-                    (stats.fan2_rpm as f64 + rpm3 * 5.0) / 6.0,
-                    (stats.fan3_rpm as f64 + rpm4 * 5.0) / 6.0,
+                    (stats.pump1_rpm as f64 + rpm1) / 2.0,
+                    (stats.fan1_rpm as f64 + rpm2) / 2.0,
+                    (stats.fan2_rpm as f64 + rpm3) / 2.0,
+                    (stats.fan3_rpm as f64 + rpm4) / 2.0,
                 ];
             }
             Err(e) => {
