@@ -131,7 +131,7 @@ impl FanSetting {
     pub fn is_valid(&self) -> bool {
         let mut previous = self.curve[0];
         for current in &self.curve[1..] {
-            if current.0 < previous.0 || current.1 < previous.1 {
+            if current.0 <= previous.0 || current.1 <= previous.1 {
                 return false;
             }
             previous = *current;
@@ -189,6 +189,10 @@ impl Default for Config {
 
 impl Config {
     pub fn is_valid(&self) -> bool {
+        // running in smart mode only requires pump to be at a decent speed.
+        if let Some(ref smart_mode) = self.smart_mode {
+            return smart_mode.pump_duty >= 40.0;
+        }
         self.settings.iter().all(|c| c.is_valid())
     }
 
@@ -223,11 +227,7 @@ pub fn get_smart_duty(
     max_duty_value: u16,
     is_running: bool,
 ) -> u16 {
-    let trigger_temp = if ambient_temp >= temp {
-        ambient_temp
-    } else {
-        ambient_temp + min_delta
-    };
+    let trigger_temp = ambient_temp + min_delta;
 
     // if we are 1C below the minimum trigger delta turn off
     if is_running && temp <= trigger_temp - SWITCH_TEMP_BUFFER {
