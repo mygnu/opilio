@@ -1,6 +1,6 @@
 [package]
 name = "opilio-tui"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 author = "Harry Gill <tech@gill.net.in>"
 description = "TUI interface for opilio Pump/Fan controller"
@@ -37,7 +37,7 @@ section = "utility"
 priority = "optional"
 assets = [
     ["target/release/opilio-tui", "/usr/local/bin/", "755"],
-    ["target/release/opilio-daemon", "/usr/local/bin/", "755"],
+    ["../opilio-daemon/target/release/opilio-daemon", "/usr/local/bin/", "755"],
     ["../assets/opilio-daemon.service", "/etc/systemd/system/", "644"],
     ["../assets/config.json", "/etc/opilio/config.json", "766"],
     ["../README.md", "/usr/share/doc/opilio/README.md", "644"],
