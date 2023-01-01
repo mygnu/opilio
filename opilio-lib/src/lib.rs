@@ -153,9 +153,21 @@ pub struct SmartMode {
     pub pump_duty: f32,
 }
 
-#[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(
+    Format, Copy, Clone, Deserialize, Serialize, Debug, Default, PartialEq,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum SwitchMode {
+    #[default]
+    On,
+    Off,
+}
+
+#[derive(Format, Clone, Deserialize, Serialize, Debug, Default, PartialEq)]
 pub struct GeneralConfig {
-    pub sleep_after: u32,
+    pub sleep_after: Option<u32>,
+    pub led: SwitchMode,
+    pub buzzer: SwitchMode,
 }
 
 #[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
@@ -174,13 +186,11 @@ impl Default for Config {
         settings.push(FanSetting::new(Id::F3)).ok();
 
         Self {
-            general: GeneralConfig {
-                sleep_after: DEFAULT_SLEEP_AFTER,
-            },
+            general: GeneralConfig::default(),
             smart_mode: Some(SmartMode {
                 trigger_above_ambient: 5.0,
                 upper_temp: 40.0,
-                pump_duty: 100.0,
+                pump_duty: 80.0,
             }),
             settings,
         }
@@ -227,6 +237,12 @@ pub fn get_smart_duty(
     max_duty_value: u16,
     is_running: bool,
 ) -> u16 {
+    let ambient_temp = if ambient_temp < -20.0 {
+        // sane default if thermistor is unplugged
+        22.0
+    } else {
+        ambient_temp
+    };
     let trigger_temp = ambient_temp + min_delta;
 
     // if we are 1C below the minimum trigger delta turn off

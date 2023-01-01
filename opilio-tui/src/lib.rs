@@ -59,35 +59,8 @@ impl OpilioSerial {
             bail!("Failed to read any bytes from the port")
         }
 
-        // // upload rest of the settings one by one
-        // for setting in config.settings.iter() {
-        //     self.upload_setting(setting)?;
-        // }
         Ok(())
     }
-
-    // pub fn upload_config(&mut self, config: Config) -> Result<()> {
-    //     self.clear_buffers()?;
-    //     let cmd = OTW::serialised_vec(
-    //         Cmd::UploadGeneral,
-    //         DataRef::General(&config.general),
-    //     )?;
-
-    //     log::info!("sending general bytes {:?}", cmd);
-    //     self.port.write_all(&cmd)?;
-
-    //     let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
-
-    //     if self.port.read(buffer.as_mut_slice())? == 0 {
-    //         bail!("Failed to read any bytes from the port")
-    //     }
-
-    //     // upload rest of the settings one by one
-    //     for setting in config.settings.iter() {
-    //         self.upload_setting(setting)?;
-    //     }
-    //     Ok(())
-    // }
 
     pub fn save_config(&mut self) -> Result<()> {
         self.clear_buffers()?;
