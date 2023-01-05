@@ -147,7 +147,6 @@ fn open_port(vid: u16, pid: u16) -> Result<(Box<dyn SerialPort>, String)> {
         .into_iter()
         .find(|info| {
             if let SerialPortType::UsbPort(port) = &info.port_type {
-                println!("serial number {:?}", port.serial_number);
                 if port.vid == vid && port.pid == pid {
                     version = port
                         .serial_number

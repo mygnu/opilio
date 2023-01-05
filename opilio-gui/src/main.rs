@@ -6,7 +6,6 @@ use iced::{
 };
 use models::RpmData;
 use opilio_tui::OpilioSerial;
-use rand::{thread_rng, Rng};
 
 mod graph;
 mod models;

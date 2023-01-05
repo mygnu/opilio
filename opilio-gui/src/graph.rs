@@ -6,9 +6,10 @@ use iced::{
         canvas,
         canvas::{
             stroke, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke,
+            Text,
         },
     },
-    Color, Element, Length, Point, Rectangle, Theme,
+    Color, Element, Length, Point, Rectangle, Size, Theme,
 };
 
 use crate::models::{RpmData, TempData};
@@ -18,7 +19,8 @@ pub(crate) struct Graph {
     pub data: VecDeque<RpmData>,
     pub max_rpm: f32,
     pub max_temp: f32,
-    pub cache: Cache,
+    pub graph_cache: Cache,
+    pub background_cache: Cache,
     pub color_p: Color,
     pub color_f: Color,
 }
@@ -33,7 +35,8 @@ impl Graph {
     pub(crate) fn new() -> Self {
         Self {
             data: VecDeque::with_capacity(50),
-            cache: Cache::new(),
+            graph_cache: Cache::new(),
+            background_cache: Cache::new(),
             max_rpm: 0.0,
             max_temp: 0.0,
             color_p: Color::from_rgba8(255, 0, 0, 1.0),
@@ -50,7 +53,7 @@ impl Graph {
     pub fn update(&mut self, msg: Message) {
         match msg {
             Message::RpmData(data) => {
-                self.cache.clear();
+                self.graph_cache.clear();
 
                 self.max_rpm = self
                     .max_rpm
@@ -98,7 +101,17 @@ impl<Message> canvas::Program<Message> for Graph {
         if self.data.len() < 2 {
             return vec![];
         }
-        let geometry = self.cache.draw(bounds.size(), |frame| {
+
+        let background = self.background_cache.draw(bounds.size(), |frame| {
+            let mut text = Text::from("20.0".to_string());
+            text.color = Color::WHITE;
+
+            text.position = Point::new(frame.width(), 0.0);
+            // frame.translate(Point::new(frame.width(), 0.0));
+            frame.fill_text(text);
+        });
+
+        let graph = self.graph_cache.draw(bounds.size(), |frame| {
             let size = self.data.len();
             let height = frame.height();
             let width = frame.width();
@@ -110,10 +123,10 @@ impl<Message> canvas::Program<Message> for Graph {
             let mut fan3 = Vec::with_capacity(size);
             let opts = SplineOpts::new().tension(0.5).num_of_segments(10);
 
-            let max_val = self.max_rpm + 4.0;
+            let max_val = self.max_rpm;
 
             for i in 0..size {
-                let x = i as f64 * section;
+                let x = (i as f64 * section) - 1.0;
                 pump.push((
                     x,
                     (height - self.data[i].pump / max_val * height) as f64,
@@ -132,13 +145,25 @@ impl<Message> canvas::Program<Message> for Graph {
                 ));
             }
 
+            let latest = self.data[size - 1];
+
+            let mut text = Text::from(format!(
+                "PUMP: {:.2}\nF1: {:.2}\nF2: {:.2}\nF3: {:.2}",
+                latest.pump, latest.fan1, latest.fan2, latest.fan3
+            ));
+            text.color = Color::WHITE;
+
+            text.position.x = frame.width() - 100.0;
+
+            frame.fill_text(text);
+
             draw_line(frame, &opts, self.color_p, pump);
             draw_line(frame, &opts, self.color_f, fan1);
             draw_line(frame, &opts, self.color_f, fan2);
             draw_line(frame, &opts, self.color_f, fan3);
         });
 
-        vec![geometry]
+        vec![background, graph]
     }
 }
 
