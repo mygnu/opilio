@@ -13,6 +13,7 @@ fn main() {
 
 fn get_sleep_time() -> Result<Duration> {
     let mut serial = opilio_tui::OpilioSerial::new()?;
+    println!("{:?}", serial);
     let config = serial.get_config()?;
     let sleep_for;
 

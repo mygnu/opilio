@@ -14,15 +14,35 @@ use serialport::{ClearBuffer, SerialPort, SerialPortType};
 pub struct OpilioSerial {
     vid: u16,
     pid: u16,
+    version: String,
     port: Box<dyn SerialPort>,
+}
+
+impl std::fmt::Debug for OpilioSerial {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OpilioSerial")
+            .field("vid", &self.vid)
+            .field("pid", &self.pid)
+            .field("version", &self.version)
+            .finish()
+    }
 }
 
 impl OpilioSerial {
     pub fn new() -> Result<Self> {
         let vid = VID;
         let pid = PID;
-        let port = open_port(vid, pid)?;
-        Ok(Self { vid, pid, port })
+        let (port, version) = open_port(vid, pid)?;
+        Ok(Self {
+            vid,
+            pid,
+            port,
+            version,
+        })
+    }
+
+    pub fn version(&self) -> &str {
+        &self.version
     }
 
     pub fn get_stats(&mut self) -> Result<Stats> {
@@ -113,20 +133,30 @@ impl OpilioSerial {
     fn clear_buffers(&mut self) -> Result<()> {
         if let Err(e) = self.port.clear(ClearBuffer::All) {
             log::error!("Error clearing buffers: {:?}: {}", e.kind(), e);
-            self.port = open_port(self.vid, self.pid).map_err(|e| {
-                anyhow!("Could not open port after error: {}", e)
-            })?;
+            self.port = open_port(self.vid, self.pid)
+                .map_err(|e| anyhow!("Could not open port after error: {}", e))?
+                .0;
         };
         Ok(())
     }
 }
 
-fn open_port(vid: u16, pid: u16) -> Result<Box<dyn SerialPort>> {
+fn open_port(vid: u16, pid: u16) -> Result<(Box<dyn SerialPort>, String)> {
+    let mut version = "0.0.0".into();
     let port_name = serialport::available_ports()?
         .into_iter()
         .find(|info| {
             if let SerialPortType::UsbPort(port) = &info.port_type {
-                port.vid == vid && port.pid == pid
+                println!("serial number {:?}", port.serial_number);
+                if port.vid == vid && port.pid == pid {
+                    version = port
+                        .serial_number
+                        .clone()
+                        .unwrap_or_else(|| "0.0.0".to_string());
+                    true
+                } else {
+                    false
+                }
             } else {
                 false
             }
@@ -138,5 +168,5 @@ fn open_port(vid: u16, pid: u16) -> Result<Box<dyn SerialPort>> {
     let port = serialport::new(port_name, 115_200)
         .timeout(Duration::from_secs(1))
         .open()?;
-    Ok(port)
+    Ok((port, version))
 }

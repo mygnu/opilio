@@ -446,10 +446,13 @@ checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 name = "opilio-lib"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "defmt",
  "heapless",
+ "log",
  "postcard",
  "serde",
+ "serialport",
 ]
 
 [[package]]

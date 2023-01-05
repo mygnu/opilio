@@ -495,10 +495,13 @@ dependencies = [
 name = "opilio-lib"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "defmt",
  "heapless",
+ "log",
  "postcard",
  "serde",
+ "serialport",
 ]
 
 [[package]]

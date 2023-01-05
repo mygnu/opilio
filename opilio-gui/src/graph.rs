@@ -1,4 +1,3 @@
-use crate::models::RpmData;
 use std::collections::VecDeque;
 
 use cubic_spline::{Points, SplineOpts};
@@ -12,9 +11,13 @@ use iced::{
     Color, Element, Length, Point, Rectangle, Theme,
 };
 
+use crate::models::{RpmData, TempData};
+
 #[derive(Default)]
 pub(crate) struct Graph {
     pub data: VecDeque<RpmData>,
+    pub max_rpm: f32,
+    pub max_temp: f32,
     pub cache: Cache,
     pub color_p: Color,
     pub color_f: Color,
@@ -22,7 +25,8 @@ pub(crate) struct Graph {
 
 #[derive(Copy, Clone, Debug)]
 pub enum Message {
-    Data(RpmData),
+    RpmData(RpmData),
+    TempData(TempData),
 }
 
 impl Graph {
@@ -30,6 +34,8 @@ impl Graph {
         Self {
             data: VecDeque::with_capacity(50),
             cache: Cache::new(),
+            max_rpm: 0.0,
+            max_temp: 0.0,
             color_p: Color::from_rgba8(255, 0, 0, 1.0),
             color_f: Color::from_rgba8(255, 255, 0, 0.6),
         }
@@ -43,14 +49,37 @@ impl Graph {
     }
     pub fn update(&mut self, msg: Message) {
         match msg {
-            Message::Data(temp_data) => {
+            Message::RpmData(data) => {
                 self.cache.clear();
 
-                self.data.push_back(temp_data);
+                self.max_rpm = self
+                    .max_rpm
+                    .max(data.pump)
+                    .max(data.fan1)
+                    .max(data.fan2)
+                    .max(data.fan3);
+
+                self.data.push_back(data);
 
                 if self.data.len() >= 50 {
                     self.data.pop_front();
                 }
+            }
+            Message::TempData(_temp_data) => {
+                // self.cache.clear();
+
+                // self.max_rpm = self
+                //     .max_rpm
+                //     .max(temp_data.pump)
+                //     .max(temp_data.fan1)
+                //     .max(temp_data.fan2)
+                //     .max(temp_data.fan3);
+
+                // self.data.push_back(temp_data);
+
+                // if self.data.len() >= 50 {
+                //     self.data.pop_front();
+                // }
             }
         }
     }
@@ -80,23 +109,26 @@ impl<Message> canvas::Program<Message> for Graph {
             let mut fan2 = Vec::with_capacity(size);
             let mut fan3 = Vec::with_capacity(size);
             let opts = SplineOpts::new().tension(0.5).num_of_segments(10);
+
+            let max_val = self.max_rpm + 4.0;
+
             for i in 0..size {
                 let x = i as f64 * section;
                 pump.push((
                     x,
-                    (height - self.data[i].pump / 50.0 * height) as f64,
+                    (height - self.data[i].pump / max_val * height) as f64,
                 ));
                 fan1.push((
                     x,
-                    (height - self.data[i].fan1 / 50.0 * height) as f64,
+                    (height - self.data[i].fan1 / max_val * height) as f64,
                 ));
                 fan2.push((
                     x,
-                    (height - self.data[i].fan2 / 50.0 * height) as f64,
+                    (height - self.data[i].fan2 / max_val * height) as f64,
                 ));
                 fan3.push((
                     x,
-                    (height - self.data[i].fan3 / 50.0 * height) as f64,
+                    (height - self.data[i].fan3 / max_val * height) as f64,
                 ));
             }
 

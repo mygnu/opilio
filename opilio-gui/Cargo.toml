@@ -11,6 +11,7 @@ rand = "0.8"
 log = "0.4"
 env_logger = "0.10"
 cubic_spline = "1.0"
+opilio-tui = { path = "../opilio-tui"}
 time = { version = "0.3", features = ["local-offset"] }
 
 
