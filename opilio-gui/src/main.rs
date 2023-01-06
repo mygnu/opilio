@@ -39,8 +39,8 @@ impl Application for Opilio {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             Opilio {
-                rpm_graph: graph::Graph::new(),
-                tmp_graph: graph::Graph::new(),
+                rpm_graph: graph::Graph::new(50),
+                tmp_graph: graph::Graph::new(50),
                 serial: OpilioSerial::new().unwrap(),
             },
             Command::none(),

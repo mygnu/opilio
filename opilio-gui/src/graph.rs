@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, thread, time::Duration};
 
 use cubic_spline::{Points, SplineOpts};
 use iced::{
@@ -9,7 +9,7 @@ use iced::{
             Text,
         },
     },
-    Color, Element, Length, Point, Rectangle, Size, Theme,
+    Color, Element, Length, Point, Rectangle, Theme,
 };
 
 use crate::models::{RpmData, TempData};
@@ -17,8 +17,8 @@ use crate::models::{RpmData, TempData};
 #[derive(Default)]
 pub(crate) struct Graph {
     pub data: VecDeque<RpmData>,
-    pub max_rpm: f32,
-    pub max_temp: f32,
+    pub max_val: f32,
+    pub max_size: usize,
     pub graph_cache: Cache,
     pub background_cache: Cache,
     pub color_p: Color,
@@ -32,13 +32,13 @@ pub enum Message {
 }
 
 impl Graph {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(max_size: usize) -> Self {
         Self {
-            data: VecDeque::with_capacity(50),
+            data: VecDeque::with_capacity(max_size),
             graph_cache: Cache::new(),
             background_cache: Cache::new(),
-            max_rpm: 0.0,
-            max_temp: 0.0,
+            max_val: 0.0,
+            max_size,
             color_p: Color::from_rgba8(255, 0, 0, 1.0),
             color_f: Color::from_rgba8(255, 255, 0, 0.6),
         }
@@ -55,8 +55,8 @@ impl Graph {
             Message::RpmData(data) => {
                 self.graph_cache.clear();
 
-                self.max_rpm = self
-                    .max_rpm
+                self.max_val = self
+                    .max_val
                     .max(data.pump)
                     .max(data.fan1)
                     .max(data.fan2)
@@ -106,7 +106,7 @@ impl<Message> canvas::Program<Message> for Graph {
             let mut text = Text::from("20.0".to_string());
             text.color = Color::WHITE;
 
-            text.position = Point::new(frame.width(), 0.0);
+            text.position = Point::new(frame.width() - 100.0, 100.0);
             // frame.translate(Point::new(frame.width(), 0.0));
             frame.fill_text(text);
         });
@@ -123,25 +123,28 @@ impl<Message> canvas::Program<Message> for Graph {
             let mut fan3 = Vec::with_capacity(size);
             let opts = SplineOpts::new().tension(0.5).num_of_segments(10);
 
-            let max_val = self.max_rpm;
+            let max_val = self.max_val;
+            let default = RpmData::default();
 
             for i in 0..size {
-                let x = (i as f64 * section) - 1.0;
+                let x = (i as f64 * section) + 4.0;
+
+                let data = self.data.get(i).unwrap_or_else(|| &default);
                 pump.push((
                     x,
-                    (height - self.data[i].pump / max_val * height) as f64,
+                    (height - data.pump / max_val * height) as f64 + 4.0,
                 ));
                 fan1.push((
                     x,
-                    (height - self.data[i].fan1 / max_val * height) as f64,
+                    (height - data.fan1 / max_val * height) as f64 + 4.0,
                 ));
                 fan2.push((
                     x,
-                    (height - self.data[i].fan2 / max_val * height) as f64,
+                    (height - data.fan2 / max_val * height) as f64 + 4.0,
                 ));
                 fan3.push((
                     x,
-                    (height - self.data[i].fan3 / max_val * height) as f64,
+                    (height - data.fan3 / max_val * height) as f64 + 4.0,
                 ));
             }
 
@@ -157,10 +160,10 @@ impl<Message> canvas::Program<Message> for Graph {
 
             frame.fill_text(text);
 
-            draw_line(frame, &opts, self.color_p, pump);
-            draw_line(frame, &opts, self.color_f, fan1);
-            draw_line(frame, &opts, self.color_f, fan2);
-            draw_line(frame, &opts, self.color_f, fan3);
+            draw_line(frame, &opts, self.color_p, &pump);
+            draw_line(frame, &opts, self.color_f, &fan1);
+            draw_line(frame, &opts, self.color_f, &fan2);
+            draw_line(frame, &opts, self.color_f, &fan3);
         });
 
         vec![background, graph]
@@ -171,12 +174,12 @@ fn draw_line(
     frame: &mut canvas::Frame,
     opts: &SplineOpts,
     color: Color,
-    data_xy: Vec<(f64, f64)>,
+    data_xy: &[(f64, f64)],
 ) {
-    let pump_spline = Points::from(&data_xy)
+    let spline = Points::from(data_xy)
         .calc_spline(opts)
-        .expect("cant construct pump spline points");
-    let pump_path = build_path(pump_spline);
+        .expect("cant construct spline points");
+    let pump_path = build_path(spline);
     frame.stroke(
         &pump_path,
         Stroke {
