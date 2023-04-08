@@ -6,15 +6,33 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0"
 iced = { version = "0.8", features = ["canvas", "tokio"] }
+iced_native = "0.9"
+iced_aw = "0.4"
 rand = "0.8"
 log = "0.4"
 env_logger = "0.10"
 cubic_spline = "1.0"
 opilio-tui = { path = "../opilio-tui"}
+opilio-lib = { path = "../opilio-lib"}
 time = { version = "0.3", features = ["local-offset"] }
+plotters = { version = "0.3", default_features = false, features = [
+    "chrono",
+    "area_series",
+    "line_series",
+    "point_series",
+] }
+plotters-iced = "0.7.0"
+chrono = { version = "0.4", default-features = false }
+plotters-backend = "0.3"
+serial2 = "0.1"
+tray-icon = "0.4"
 
 
 [[bin]]
 name = "opilio-gui"
 path = "src/main.rs"
+
+[build-dependencies]
+image = "0.24"
