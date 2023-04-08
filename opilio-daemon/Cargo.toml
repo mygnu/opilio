@@ -9,7 +9,7 @@ edition = "2021"
 daemonize-me = "2.0"
 opilio-tui = { path = "../opilio-tui"}
 anyhow = "1.0"
-dirs = "4.0"
+dirs = "5.0"
 
 [[bin]]
 name = "opilio-daemon"
