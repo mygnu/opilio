@@ -2,6 +2,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use chrono::Utc;
+use iced::widget::toggler;
 use iced::{
     alignment,
     widget::{
@@ -12,6 +13,7 @@ use iced::{
 };
 use iced_aw::NumberInput;
 use opilio_lib::Config;
+use opilio_lib::SmartMode;
 use opilio_tui::OpilioSerial;
 
 use crate::graphs::{ChartGroup, MonitoringData};
@@ -87,6 +89,42 @@ impl RunningState {
                     }
                 }
             }
+            Message::SetSleepAfter(sleep_after) => {
+                self.config.general.sleep_after = Some(sleep_after);
+            }
+            Message::SetTriggerAboveAmbient(trigger_above_ambient) => {
+                if let Some(smart_mode) = self.config.smart_mode.as_mut() {
+                    smart_mode.trigger_above_ambient = trigger_above_ambient;
+                }
+            }
+            Message::SetUpperTemp(upper_temp) => {
+                if let Some(smart_mode) = self.config.smart_mode.as_mut() {
+                    smart_mode.upper_temp = upper_temp;
+                }
+            }
+            Message::SetPumpDuty(pump_duty) => {
+                if let Some(smart_mode) = self.config.smart_mode.as_mut() {
+                    smart_mode.pump_duty = pump_duty;
+                }
+            }
+            Message::ToggleSmartMode(enable) => {
+                if enable {
+                    self.config.smart_mode = Some(SmartMode::default());
+                } else {
+                    self.config.smart_mode = None
+                }
+            }
+            Message::Test => {
+                if let Err(e) =
+                    self.opilio_serial.upload_config(self.config.clone())
+                {
+                    self.error_text =
+                        Some(format!("Failed to upload settings to opilio {e}"))
+                }
+            }
+            Message::CloseModal => {
+                self.error_text = None;
+            }
             _ => {}
         }
         Command::none()
@@ -109,32 +147,24 @@ impl RunningState {
     }
 
     pub fn view_left_column(&self) -> Element<'_, Message> {
-        let button = |label| {
-            iced::widget::button(
-                iced::widget::text(label)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-            )
-            .padding(10)
-            .width(Length::Fixed(110.0))
-        };
+        // let button = |label, tooltip, msg| {
+        //     iced::widget::tooltip(
+        //         iced::widget::button(
+        //             iced::widget::text(label)
+        //                 .horizontal_alignment(alignment::Horizontal::Center),
+        //         )
+        //         .padding(10)
+        //         .width(Length::Fixed(110.0))
+        //         .on_press(msg),
+        //         tooltip,
+        //         iced::widget::tooltip::Position::Top,
+        //     )
+        // };
 
-        // let en_button =
-        //     if !self.tec_status.contains(TecStatus::LOW_POWER_MODE_ACTIVE) {
-        //         button("Disable TEC")
-        //             .style(iced::theme::Button::Secondary)
-        //             .on_press(Message::Disable)
-        //     } else {
-        //         button("Enable TEC")
-        //             .style(iced::theme::Button::Primary)
-        //             .on_press(Message::Enable)
-        //     };
-
-        let hide_button = button("Hide Window")
-            .style(iced::theme::Button::Primary)
-            .on_press(Message::Hide);
-
-        let mut content =
-            Column::new().spacing(5).width(Length::Fixed(280.0)).push(
+        let mut content = Column::new()
+            .spacing(5)
+            .width(Length::Fixed(280.0))
+            .push(
                 Row::new()
                     .push(
                         Column::new()
@@ -159,11 +189,40 @@ impl RunningState {
                             ),
                     )
                     .padding(15),
+            )
+            .push(horizontal_rule(10))
+            .push(Text::new("General").size(28))
+            .push(
+                Row::new()
+                    .push(Text::new("Sleep after seconds"))
+                    .push(horizontal_space(Length::Fill))
+                    .push(
+                        NumberInput::new(
+                            self.config.general.sleep_after.unwrap_or_default(),
+                            500,
+                            Message::SetSleepAfter,
+                        )
+                        .style(iced_aw::style::NumberInputStyles::Default)
+                        .step(1)
+                        .min(0),
+                    )
+                    .padding(5)
+                    .spacing(5),
+            )
+            .push(
+                toggler(
+                    String::from("Smart Mode"),
+                    self.config.smart_mode.is_some(),
+                    Message::ToggleSmartMode,
+                )
+                .width(Length::Shrink)
+                .spacing(10),
             );
 
         if let Some(ref smart_mode) = self.config.smart_mode {
             content = content
-                .push(horizontal_rule(20))
+                .push(horizontal_rule(10))
+                .push(Text::new("Smart Settings").size(28))
                 .push(
                     Row::new()
                         .push(Text::new("Trigger Above Ambient"))
@@ -171,12 +230,12 @@ impl RunningState {
                         .push(
                             NumberInput::new(
                                 smart_mode.trigger_above_ambient,
-                                5.0,
-                                Message::UpdateSetpoint,
+                                6.0,
+                                Message::SetTriggerAboveAmbient,
                             )
                             .style(iced_aw::style::NumberInputStyles::Default)
-                            .step(1.0)
-                            .min(-50.0),
+                            .step(0.5)
+                            .min(1.0),
                         )
                         .padding(5)
                         .spacing(5),
@@ -189,16 +248,15 @@ impl RunningState {
                             NumberInput::new(
                                 smart_mode.upper_temp,
                                 50.0,
-                                Message::UpdateSetpoint,
+                                Message::SetUpperTemp,
                             )
                             .style(iced_aw::style::NumberInputStyles::Default)
                             .step(0.5)
-                            .min(30.0),
+                            .min(20.0),
                         )
                         .padding(5)
                         .spacing(5),
                 )
-                .push(horizontal_rule(20))
                 .push(
                     Row::new()
                         .push(Text::new("Pump Duty"))
@@ -207,58 +265,55 @@ impl RunningState {
                             NumberInput::new(
                                 smart_mode.pump_duty,
                                 100.0,
-                                Message::UpdatePCoef,
+                                Message::SetPumpDuty,
                             )
                             .style(iced_aw::style::NumberInputStyles::Default)
-                            .step(0.1)
-                            .min(-1000.0),
+                            .step(1.0)
+                            .min(30.0),
                         )
                         .padding(5)
                         .spacing(5),
                 );
-            // .push(
-            //     Row::new()
-            //         .push(Text::new("I Coefficient"))
-            //         .push(horizontal_space(Length::Fill))
-            //         .push(
-            //             NumberInput::new(
-            //                 self.config.i_coef,
-            //                 1000.0,
-            //                 Message::UpdateICoef,
-            //             )
-            //             .style(iced_aw::style::NumberInputStyles::Default)
-            //             .step(0.1)
-            //             .min(-1000.0),
-            //         )
-            //         .padding(5)
-            //         .spacing(5),
-            // )
-            // .push(
-            //     Row::new()
-            //         .push(Text::new("D Coefficient"))
-            //         .push(horizontal_space(Length::Fill))
-            //         .push(
-            //             NumberInput::new(
-            //                 self.config.d_coef,
-            //                 1000.0,
-            //                 Message::UpdateDCoef,
-            //             )
-            //             .style(iced_aw::style::NumberInputStyles::Default)
-            //             .step(0.1)
-            //             .min(-1000.0),
-            //         )
-            //         .padding(5)
-            //         .spacing(5),
-            // );
         };
+        // let hide_button = button("Hide Window")
+        //     .style(iced::theme::Button::Primary)
+        //     .on_press(Message::Hide);
+        let test_button = iced::widget::tooltip(
+            iced::widget::button(
+                iced::widget::text("Test")
+                    .horizontal_alignment(alignment::Horizontal::Center),
+            )
+            .padding(10)
+            .width(Length::Fixed(110.0))
+            .style(iced::theme::Button::Positive)
+            .on_press(Message::Test),
+            "Testing settings will\nnot survive power-cycle.",
+            iced::widget::tooltip::Position::Top,
+        );
+        let persist_button = iced::widget::tooltip(
+            iced::widget::button(
+                iced::widget::text("Save")
+                    .horizontal_alignment(alignment::Horizontal::Center),
+            )
+            .padding(10)
+            .width(Length::Fixed(110.0))
+            .style(iced::theme::Button::Primary)
+            .on_press(Message::Test),
+            "Persist test settings\n to opilio storage.",
+            iced::widget::tooltip::Position::Top,
+        );
+
         content = content
-            .push(horizontal_rule(20))
+            .push(horizontal_rule(10))
             // .push(view_badges(&self.tec_status))
             .push(vertical_space(Length::Fill))
             .push(
-                Column::new()
-                    .push(hide_button)
-                    .padding(15)
+                Row::new()
+                    // .push(hide_button)
+                    .push(test_button)
+                    .push(horizontal_space(Length::Fill))
+                    .push(persist_button)
+                    .padding(2)
                     .align_items(Alignment::Center)
                     .width(Length::Fill),
             );

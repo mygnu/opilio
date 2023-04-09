@@ -153,6 +153,16 @@ pub struct SmartMode {
     pub pump_duty: f32,
 }
 
+impl Default for SmartMode {
+    fn default() -> Self {
+        Self {
+            trigger_above_ambient: 5.0,
+            upper_temp: 40.0,
+            pump_duty: 80.0,
+        }
+    }
+}
+
 #[derive(
     Format, Copy, Clone, Deserialize, Serialize, Debug, Default, PartialEq,
 )]
@@ -187,11 +197,7 @@ impl Default for Config {
 
         Self {
             general: GeneralConfig::default(),
-            smart_mode: Some(SmartMode {
-                trigger_above_ambient: 5.0,
-                upper_temp: 40.0,
-                pump_duty: 80.0,
-            }),
+            smart_mode: Some(SmartMode::default()),
             settings,
         }
     }

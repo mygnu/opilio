@@ -99,16 +99,17 @@ pub enum Message {
     CloseModal,
     Enable,
     Disable,
-    UpdatePCoef(f32),
-    UpdateICoef(f32),
-    UpdateDCoef(f32),
-    UpdateSetpoint(f32),
-    UpdateMaxPower(u8),
-
+    SetSleepAfter(u32),
+    SetTriggerAboveAmbient(f32),
+    SetUpperTemp(f32),
+    SetPumpDuty(f32),
+    ToggleSmartMode(bool),
     PortSelected(PortIdent),
     Open,
     ChangeState,
     Hide,
+    Test,
+    Persist,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
