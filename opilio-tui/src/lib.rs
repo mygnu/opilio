@@ -96,7 +96,7 @@ impl OpilioSerial {
         Ok(())
     }
 
-    pub fn upload_setting(&mut self, setting: &FanSetting) -> Result<()> {
+    pub fn upload_fan_setting(&mut self, setting: &FanSetting) -> Result<()> {
         self.clear_buffers()?;
         let cmd =
             OTW::serialised_vec(Cmd::UploadSetting, DataRef::Setting(setting))?;
@@ -128,6 +128,22 @@ impl OpilioSerial {
             Data::Config(s) => Ok(s),
             _ => bail!("Failed to get data"),
         }
+    }
+
+    pub fn reload(&mut self) -> Result<()> {
+        self.clear_buffers()?;
+        let cmd = OTW::serialised_vec(Cmd::Reload, DataRef::Empty)?;
+        self.port.write_all(&cmd)?;
+
+        log::info!("resetting opilio {:?}", cmd);
+        self.port.write_all(&cmd)?;
+
+        let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+        if self.port.read(buffer.as_mut_slice())? == 0 {
+            bail!("Failed to read any bytes from the port")
+        }
+        Ok(())
     }
 
     fn clear_buffers(&mut self) -> Result<()> {
@@ -167,5 +183,6 @@ fn open_port(vid: u16, pid: u16) -> Result<(Box<dyn SerialPort>, String)> {
     let port = serialport::new(port_name, 115_200)
         .timeout(Duration::from_secs(1))
         .open()?;
+    dbg!(&version);
     Ok((port, version))
 }

@@ -24,7 +24,7 @@ impl OTW {
         }
 
         if match cmd {
-            Cmd::GetStats | Cmd::SaveConfig | Cmd::GetConfig => {
+            Cmd::GetStats | Cmd::SaveConfig | Cmd::GetConfig | Cmd::Reload => {
                 matches!(data, DataRef::Empty)
             }
             Cmd::UploadSetting => {
@@ -68,7 +68,7 @@ impl OTW {
             Cmd::Result => Data::Result(from_bytes(&slice[2..])?),
             Cmd::UploadGeneral => Data::General(from_bytes(&slice[2..])?),
 
-            Cmd::GetStats | Cmd::SaveConfig => Data::Empty,
+            Cmd::GetStats | Cmd::SaveConfig | Cmd::Reload => Data::Empty,
         };
         Ok(Self { cmd: command, data })
     }

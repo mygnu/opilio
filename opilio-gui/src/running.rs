@@ -29,6 +29,7 @@ pub struct RunningState {
     config: Config,
     error_text: Option<String>,
     update_interval: Duration,
+    testing: bool,
 }
 
 impl RunningState {
@@ -53,6 +54,7 @@ impl RunningState {
             config,
             error_text: None,
             update_interval: Duration::from_millis(500),
+            testing: false,
         })
     }
     #[inline]
@@ -107,20 +109,33 @@ impl RunningState {
                     smart_mode.pump_duty = pump_duty;
                 }
             }
-            Message::ToggleSmartMode(enable) => {
+            Message::ToggleSleep(enable) => {
                 if enable {
-                    self.config.smart_mode = Some(SmartMode::default());
+                    self.config.general.sleep_after = Some(1);
                 } else {
-                    self.config.smart_mode = None
+                    self.config.general.sleep_after = None
                 }
             }
             Message::Test => {
-                if let Err(e) =
-                    self.opilio_serial.upload_config(self.config.clone())
-                {
-                    self.error_text =
-                        Some(format!("Failed to upload settings to opilio {e}"))
+                if self.testing {
+                    match self.opilio_serial.reload() {
+                        Err(e) => {
+                            self.error_text = Some(format!(
+                                "Failed to upload config to opilio {e}"
+                            ))
+                        }
+                        _ => self.testing = false,
+                    };
+                } else {
+                    self.upload_config();
                 }
+            }
+            Message::Save => {
+                self.save_config();
+            }
+            Message::Reset => {
+                self.config = Config::default();
+                self.save_config()
             }
             Message::CloseModal => {
                 self.error_text = None;
@@ -128,6 +143,27 @@ impl RunningState {
             _ => {}
         }
         Command::none()
+    }
+
+    fn save_config(&mut self) {
+        self.upload_config();
+        match self.opilio_serial.save_config() {
+            Err(e) => {
+                self.error_text =
+                    Some(format!("Failed to save config to opilio {e}"))
+            }
+            _ => self.testing = false,
+        };
+    }
+
+    fn upload_config(&mut self) {
+        match self.opilio_serial.upload_config(self.config.clone()) {
+            Err(e) => {
+                self.error_text =
+                    Some(format!("Failed to upload config to opilio {e}"))
+            }
+            _ => self.testing = true,
+        }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
@@ -193,8 +229,20 @@ impl RunningState {
             .push(horizontal_rule(10))
             .push(Text::new("General").size(28))
             .push(
+                Row::new().push(horizontal_space(Length::Fill)).push(
+                    toggler(
+                        String::from("Auto Sleep"),
+                        self.config.general.sleep_after.is_some(),
+                        Message::ToggleSleep,
+                    )
+                    .width(Length::Shrink)
+                    .spacing(10),
+                ),
+            );
+        if self.config.general.sleep_after.is_some() {
+            content = content.push(
                 Row::new()
-                    .push(Text::new("Sleep after seconds"))
+                    .push(Text::new("Sleep after (Sec)"))
                     .push(horizontal_space(Length::Fill))
                     .push(
                         NumberInput::new(
@@ -208,16 +256,8 @@ impl RunningState {
                     )
                     .padding(5)
                     .spacing(5),
-            )
-            .push(
-                toggler(
-                    String::from("Smart Mode"),
-                    self.config.smart_mode.is_some(),
-                    Message::ToggleSmartMode,
-                )
-                .width(Length::Shrink)
-                .spacing(10),
             );
+        }
 
         if let Some(ref smart_mode) = self.config.smart_mode {
             content = content
@@ -225,7 +265,7 @@ impl RunningState {
                 .push(Text::new("Smart Settings").size(28))
                 .push(
                     Row::new()
-                        .push(Text::new("Trigger Above Ambient"))
+                        .push(Text::new("Trigger Above Ambient (C)"))
                         .push(horizontal_space(Length::Fill))
                         .push(
                             NumberInput::new(
@@ -242,7 +282,7 @@ impl RunningState {
                 )
                 .push(
                     Row::new()
-                        .push(Text::new("Upper Temp"))
+                        .push(Text::new("Upper Temp (C)"))
                         .push(horizontal_space(Length::Fill))
                         .push(
                             NumberInput::new(
@@ -259,7 +299,7 @@ impl RunningState {
                 )
                 .push(
                     Row::new()
-                        .push(Text::new("Pump Duty"))
+                        .push(Text::new("Pump Speed (%)"))
                         .push(horizontal_space(Length::Fill))
                         .push(
                             NumberInput::new(
@@ -280,17 +320,41 @@ impl RunningState {
         //     .on_press(Message::Hide);
         let test_button = iced::widget::tooltip(
             iced::widget::button(
-                iced::widget::text("Test")
+                iced::widget::text(if self.testing {
+                    "Stop Testing"
+                } else {
+                    "Test"
+                })
+                .horizontal_alignment(alignment::Horizontal::Center),
+            )
+            .padding(10)
+            .width(Length::Fixed(110.0))
+            .style(if self.testing {
+                iced::theme::Button::Destructive
+            } else {
+                iced::theme::Button::Positive
+            })
+            .on_press(Message::Test),
+            "Testing settings will\nnot survive power-cycle.",
+            iced::widget::tooltip::Position::Top,
+        )
+        .size(15)
+        .snap_within_viewport(true);
+        let reset_button = iced::widget::tooltip(
+            iced::widget::button(
+                iced::widget::text("Reset")
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
             .padding(10)
             .width(Length::Fixed(110.0))
-            .style(iced::theme::Button::Positive)
-            .on_press(Message::Test),
-            "Testing settings will\nnot survive power-cycle.",
+            .style(iced::theme::Button::Destructive)
+            .on_press(Message::Reset),
+            "Reset to default settings.",
             iced::widget::tooltip::Position::Top,
-        );
-        let persist_button = iced::widget::tooltip(
+        )
+        .size(15)
+        .snap_within_viewport(true);
+        let save_button = iced::widget::tooltip(
             iced::widget::button(
                 iced::widget::text("Save")
                     .horizontal_alignment(alignment::Horizontal::Center),
@@ -298,21 +362,29 @@ impl RunningState {
             .padding(10)
             .width(Length::Fixed(110.0))
             .style(iced::theme::Button::Primary)
-            .on_press(Message::Test),
+            .on_press(Message::Save),
             "Persist test settings\n to opilio storage.",
             iced::widget::tooltip::Position::Top,
-        );
+        )
+        .size(15)
+        .snap_within_viewport(true);
 
         content = content
             .push(horizontal_rule(10))
-            // .push(view_badges(&self.tec_status))
             .push(vertical_space(Length::Fill))
             .push(
                 Row::new()
-                    // .push(hide_button)
+                    .push(horizontal_space(Length::Fill))
+                    .push(reset_button)
+                    .padding(2)
+                    .align_items(Alignment::Center)
+                    .width(Length::Fill),
+            )
+            .push(
+                Row::new()
                     .push(test_button)
                     .push(horizontal_space(Length::Fill))
-                    .push(persist_button)
+                    .push(save_button)
                     .padding(2)
                     .align_items(Alignment::Center)
                     .width(Length::Fill),

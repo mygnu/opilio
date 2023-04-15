@@ -39,6 +39,7 @@ pub enum Cmd {
     Result = 8,
     UploadGeneral = 9,
     UploadAll = 10,
+    Reload = 11,
 }
 
 #[derive(Serialize, Clone)]

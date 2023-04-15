@@ -103,13 +103,14 @@ pub enum Message {
     SetTriggerAboveAmbient(f32),
     SetUpperTemp(f32),
     SetPumpDuty(f32),
-    ToggleSmartMode(bool),
+    ToggleSleep(bool),
     PortSelected(PortIdent),
     Open,
     ChangeState,
     Hide,
     Test,
-    Persist,
+    Save,
+    Reset,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
