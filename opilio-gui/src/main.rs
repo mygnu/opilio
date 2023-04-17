@@ -23,7 +23,7 @@ mod running;
 use iced::{
     alignment, executor,
     widget::{Column, Container, Row, Text},
-    window::icon::Icon,
+    window::icon,
     Application, Color, Command, Element, Font, Length, Settings, Subscription,
     Theme,
 };
@@ -84,7 +84,7 @@ fn main() {
             resizable: true,
             decorations: true,
             icon: Some(
-                Icon::from_rgba(ICON.to_vec(), 128, 128)
+                icon::from_rgba(ICON.to_vec(), 128, 128)
                     .expect("icon.bin contains valid rgba"),
             ),
             ..iced::window::Settings::default()

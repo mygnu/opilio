@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-iced = { version = "0.8", features = ["canvas", "tokio"] }
-iced_native = "0.9"
-iced_aw = "0.4"
+iced = { version = "0.9", features = ["canvas", "tokio"] }
+iced_native = "0.10"
+iced_aw = "0.5"
 rand = "0.8"
 log = "0.4"
 env_logger = "0.10"
@@ -23,7 +23,7 @@ plotters = { version = "0.3", default_features = false, features = [
     "line_series",
     "point_series",
 ] }
-plotters-iced = "0.7.0"
+plotters-iced = "0.8.0"
 chrono = { version = "0.4", default-features = false }
 plotters-backend = "0.3"
 serial2 = "0.1"

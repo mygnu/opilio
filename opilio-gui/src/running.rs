@@ -13,7 +13,6 @@ use iced::{
 };
 use iced_aw::NumberInput;
 use opilio_lib::Config;
-use opilio_lib::SmartMode;
 use opilio_tui::OpilioSerial;
 
 use crate::graphs::{ChartGroup, MonitoringData};
