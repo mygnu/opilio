@@ -10,7 +10,7 @@ pub enum Error {
     SerialRead,
     SerialWrite,
     Serialize,
-    InvalidCmdDataPair,
+    InvalidMsgDataPair,
     Unknown,
     TempRead,
 }

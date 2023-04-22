@@ -37,6 +37,7 @@ priority = "optional"
 assets = [
     ["target/release/opilio-tui", "/usr/local/bin/", "755"],
     ["../opilio-daemon/target/release/opilio-daemon", "/usr/local/bin/", "755"],
+    ["../opilio-gui/target/release/opilio-gui", "/usr/local/bin/", "755"],
     ["../assets/opilio-daemon.service", "/etc/systemd/system/", "644"],
     ["../assets/config.json", "/etc/opilio/config.json", "766"],
     ["../README.md", "/usr/share/doc/opilio/README.md", "644"],

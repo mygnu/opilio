@@ -3,47 +3,48 @@ use heapless::Vec;
 use postcard::{from_bytes, to_vec};
 use serde::Serialize;
 
-use crate::{error::Error, Cmd, Data, DataRef, Result, MAX_SERIAL_DATA_SIZE};
+use crate::{error::Error, Data, DataRef, Msg, Result, MAX_SERIAL_DATA_SIZE};
 
 /// Over The Wire protocol
 #[derive(Debug, Format, PartialEq)]
 pub struct OTW {
-    pub cmd: Cmd,
+    pub msg: Msg,
     pub data: Data,
 }
 
 impl OTW {
     pub fn serialised_vec(
-        cmd: Cmd,
+        msg: Msg,
         data: DataRef,
     ) -> Result<Vec<u8, MAX_SERIAL_DATA_SIZE>> {
         #[derive(Serialize)]
         struct OtwSerial<'a> {
-            cmd: Cmd,
+            msg: Msg,
             data: DataRef<'a>,
         }
 
-        if match cmd {
-            Cmd::GetStats | Cmd::SaveConfig | Cmd::GetConfig | Cmd::Reload => {
+        if match msg {
+            Msg::GetStats
+            | Msg::SaveConfig
+            | Msg::GetConfig
+            | Msg::Reload
+            | Msg::Ping => {
                 matches!(data, DataRef::Empty)
             }
-            Cmd::UploadSetting => {
-                matches!(data, DataRef::Setting(_))
-            }
-            Cmd::Config => {
+            Msg::Config => {
                 matches!(data, DataRef::Config(_))
             }
-            Cmd::UploadAll => {
+            Msg::UploadConfig => {
                 matches!(data, DataRef::Config(_))
             }
-            Cmd::Result => matches!(data, DataRef::Result(_)),
-            Cmd::Stats => matches!(data, DataRef::Stats(_)),
-            Cmd::UploadGeneral => matches!(data, DataRef::General(_)),
+            Msg::Result => matches!(data, DataRef::Result(_)),
+            Msg::Stats => matches!(data, DataRef::Stats(_)),
+            Msg::Pong => matches!(data, DataRef::Pong(_)),
         } {
-            let s = OtwSerial { cmd, data };
+            let s = OtwSerial { msg, data };
             to_vec(&s).map_err(Error::from)
         } else {
-            Err(Error::InvalidCmdDataPair)
+            Err(Error::InvalidMsgDataPair)
         }
     }
 
@@ -59,17 +60,19 @@ impl OTW {
         let command = from_bytes(&slice[0..2])?;
 
         let data = match command {
-            Cmd::UploadSetting => Data::Setting(from_bytes(&slice[2..])?),
-            Cmd::Config | Cmd::UploadAll => {
+            Msg::Config | Msg::UploadConfig => {
                 Data::Config(from_bytes(&slice[2..])?)
             }
-            Cmd::Stats => Data::Stats(from_bytes(&slice[2..])?),
-            Cmd::GetConfig => Data::SettingId(from_bytes(&slice[2..])?),
-            Cmd::Result => Data::Result(from_bytes(&slice[2..])?),
-            Cmd::UploadGeneral => Data::General(from_bytes(&slice[2..])?),
+            Msg::Stats => Data::Stats(from_bytes(&slice[2..])?),
+            Msg::Result => Data::Result(from_bytes(&slice[2..])?),
+            Msg::Pong => Data::Pong(from_bytes(&slice[2..])?),
 
-            Cmd::GetStats | Cmd::SaveConfig | Cmd::Reload => Data::Empty,
+            Msg::Ping
+            | Msg::GetConfig
+            | Msg::GetStats
+            | Msg::SaveConfig
+            | Msg::Reload => Data::Empty,
         };
-        Ok(Self { cmd: command, data })
+        Ok(Self { msg: command, data })
     }
 }

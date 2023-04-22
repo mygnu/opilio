@@ -29,38 +29,34 @@ pub mod otw;
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, Copy, Clone, Format, Serialize, Deserialize, PartialEq)]
-pub enum Cmd {
-    UploadSetting = 1,
-    GetConfig = 2,
-    SaveConfig = 3,
-    GetStats = 4,
-    Stats = 5,
-    Config = 6,
+pub enum Msg {
+    Ping = 1,
+    Pong = 2,
+    GetConfig = 3,
+    SaveConfig = 4,
+    GetStats = 5,
+    Stats = 6,
+    Config = 7,
     Result = 8,
-    UploadGeneral = 9,
-    UploadAll = 10,
-    Reload = 11,
+    UploadConfig = 9,
+    Reload = 10,
 }
 
 #[derive(Serialize, Clone)]
 pub enum DataRef<'a> {
-    SettingId(&'a Id),
-    Setting(&'a FanSetting),
     Config(&'a Config),
     Stats(&'a Stats),
     Result(&'a Response),
-    General(&'a GeneralConfig),
+    Pong(&'a u32),
     Empty,
 }
 
 #[derive(Format, Debug, Deserialize, PartialEq)]
 pub enum Data {
-    SettingId(Id),
-    Setting(FanSetting),
     Config(Config),
     Stats(Stats),
     Result(Response),
-    General(GeneralConfig),
+    Pong(u32),
     Empty,
 }
 
@@ -174,11 +170,27 @@ pub enum SwitchMode {
     Off,
 }
 
-#[derive(Format, Clone, Deserialize, Serialize, Debug, Default, PartialEq)]
+impl SwitchMode {
+    pub fn is_on(&self) -> bool {
+        matches!(self, Self::On)
+    }
+}
+
+#[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
 pub struct GeneralConfig {
-    pub sleep_after: Option<u32>,
+    pub sleep_after: u32,
     pub led: SwitchMode,
     pub buzzer: SwitchMode,
+}
+
+impl Default for GeneralConfig {
+    fn default() -> Self {
+        Self {
+            sleep_after: 5,
+            led: Default::default(),
+            buzzer: Default::default(),
+        }
+    }
 }
 
 #[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
@@ -206,6 +218,9 @@ impl Default for Config {
 
 impl Config {
     pub fn is_valid(&self) -> bool {
+        if self.general.sleep_after < 5 {
+            return false;
+        }
         // running in smart mode only requires pump to be at a decent speed.
         if let Some(ref smart_mode) = self.smart_mode {
             return smart_mode.pump_duty >= 40.0;
@@ -276,4 +291,210 @@ pub fn get_smart_duty(
     let duty_percent = calculate((trigger_temp, 20.0), (max_temp, 100.0));
 
     (max_duty_value as f32 / 100.0 * duty_percent) as u16
+}
+
+#[cfg(feature = "std")]
+pub mod serial {
+    extern crate std;
+
+    use std::{
+        boxed::Box,
+        io::{Read, Write},
+        string::{String, ToString},
+        time::Duration,
+        vec,
+        vec::Vec,
+    };
+
+    use anyhow::{anyhow, bail, Ok, Result};
+    use log::info;
+    use serialport::{ClearBuffer, SerialPort, SerialPortType};
+
+    use super::{Config, Data, DataRef, Msg, Stats, MAX_SERIAL_DATA_SIZE, OTW};
+
+    pub struct OpilioSerialDevice {
+        name: String,
+        port: Box<dyn SerialPort>,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub struct PortWithSerialNumber {
+        pub port_name: String,
+        pub serial_number: Option<String>,
+    }
+
+    impl std::fmt::Display for PortWithSerialNumber {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(f, "{}", self.port_name)
+        }
+    }
+
+    impl std::fmt::Debug for OpilioSerialDevice {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("OpilioSerial")
+                .field("name", &self.name)
+                .finish()
+        }
+    }
+
+    impl OpilioSerialDevice {
+        pub fn new(port_name: &str) -> Result<Self> {
+            let port = serialport::new(port_name, 115_200)
+                .timeout(Duration::from_secs(1))
+                .open()
+                .map_err(|e| {
+                    anyhow!("Failed to connect to {port_name}, ({e})")
+                })?;
+            Ok(Self {
+                port,
+                name: port_name.to_string(),
+            })
+        }
+
+        pub fn find_ports(
+            vid: u16,
+            pid: u16,
+        ) -> Result<Vec<PortWithSerialNumber>, anyhow::Error> {
+            let ports: Vec<_> = serialport::available_ports()?
+                .into_iter()
+                .filter_map(|info| {
+                    if let SerialPortType::UsbPort(port) = info.port_type {
+                        if port.vid == vid && port.pid == pid {
+                            Some(PortWithSerialNumber {
+                                port_name: info.port_name,
+                                serial_number: port.serial_number,
+                            })
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            Ok(ports)
+        }
+
+        pub fn version(&self) -> Result<String> {
+            Ok("0.1.0".to_string())
+        }
+
+        pub fn ping(&mut self) -> Result<u32> {
+            self.clear_buffers()?;
+            let cmd = OTW::serialised_vec(Msg::Ping, DataRef::Empty)?;
+            self.port.write_all(&cmd)?;
+
+            let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+            if self.port.read(buffer.as_mut_slice())? == 0 {
+                bail!("Failed to read any bytes from the port")
+            }
+
+            let response = OTW::from_bytes(&buffer)?;
+            info!("Received {:?}", response);
+            match response.data {
+                Data::Pong(p) => Ok(p),
+                _ => bail!("Failed to get data"),
+            }
+        }
+
+        pub fn get_stats(&mut self) -> Result<Stats> {
+            self.clear_buffers()?;
+
+            let cmd = OTW::serialised_vec(Msg::GetStats, DataRef::Empty)?;
+            self.port.write_all(&cmd)?;
+
+            let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+            if self.port.read(buffer.as_mut_slice())? == 0 {
+                bail!("Failed to read any bytes from the port")
+            }
+
+            let response = OTW::from_bytes(&buffer)?;
+            info!("Received {:?}", response);
+            match response.data {
+                Data::Stats(s) => Ok(s),
+                _ => bail!("Failed to get data"),
+            }
+        }
+
+        pub fn upload_config(&mut self, config: Config) -> Result<()> {
+            self.clear_buffers()?;
+            let cmd = OTW::serialised_vec(
+                Msg::UploadConfig,
+                DataRef::Config(&config),
+            )?;
+
+            log::info!("sending all bytes {:?}", cmd);
+            self.port.write_all(&cmd)?;
+
+            let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+            if self.port.read(buffer.as_mut_slice())? == 0 {
+                bail!("Failed to read any bytes from the port")
+            }
+
+            Ok(())
+        }
+
+        pub fn save_config(&mut self) -> Result<()> {
+            self.clear_buffers()?;
+            let cmd = OTW::serialised_vec(Msg::SaveConfig, DataRef::Empty)?;
+            log::info!("saving config {:?}", cmd);
+            self.port.write_all(&cmd)?;
+
+            let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+            if self.port.read(buffer.as_mut_slice())? == 0 {
+                bail!("Failed to read any bytes from the port")
+            }
+            Ok(())
+        }
+
+        pub fn get_config(&mut self) -> Result<Config> {
+            self.clear_buffers()?;
+            let cmd = OTW::serialised_vec(Msg::GetConfig, DataRef::Empty)?;
+            self.port.write_all(&cmd)?;
+
+            let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+            if self.port.read(buffer.as_mut_slice())? == 0 {
+                bail!("Failed to read any bytes from the port")
+            }
+            let response = OTW::from_bytes(&buffer)?;
+            match response.data {
+                Data::Config(s) => Ok(s),
+                _ => bail!("Failed to get data"),
+            }
+        }
+
+        pub fn reload(&mut self) -> Result<()> {
+            self.clear_buffers()?;
+            let cmd = OTW::serialised_vec(Msg::Reload, DataRef::Empty)?;
+            self.port.write_all(&cmd)?;
+
+            log::info!("resetting opilio {:?}", cmd);
+            self.port.write_all(&cmd)?;
+
+            let mut buffer = vec![0; MAX_SERIAL_DATA_SIZE];
+
+            if self.port.read(buffer.as_mut_slice())? == 0 {
+                bail!("Failed to read any bytes from the port")
+            }
+            Ok(())
+        }
+
+        fn clear_buffers(&mut self) -> Result<()> {
+            if let Err(e) = self.port.clear(ClearBuffer::All) {
+                log::error!("Error clearing buffers: {:?}: {}", e.kind(), e);
+                self.port = serialport::new(&self.name, 115_200)
+                    .timeout(Duration::from_secs(1))
+                    .open()
+                    .map_err(|e| {
+                        anyhow!("Could not open port after error: {}", e)
+                    })?;
+            };
+            Ok(())
+        }
+    }
 }

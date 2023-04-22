@@ -1,5 +1,5 @@
-use anyhow::Result;
-
+use anyhow::{anyhow, Result};
+use opilio_lib::{serial::OpilioSerialDevice, PID, VID};
 use tui::{
     style::{Color, Modifier, Style},
     symbols,
@@ -8,7 +8,6 @@ use tui::{
 };
 
 use crate::config::{config_file, from_disk};
-use opilio_tui::OpilioSerial;
 
 const TIME_SPAN: f64 = 60.0;
 const TICK_DISTANCE: f64 = 0.5;
@@ -34,7 +33,7 @@ pub enum InputMode {
 
 pub struct App {
     config_path: String,
-    serial: OpilioSerial,
+    serial: OpilioSerialDevice,
     last_point: f64,
     liquid_temp: Vec<(f64, f64)>,
     liquid_out_temp: Vec<(f64, f64)>,
@@ -59,7 +58,11 @@ impl App {
         let liquid_temp = vec![(ZERO, ZERO)];
         let liquid_out_temp = vec![(ZERO, ZERO)];
         let ambient_temp = vec![(ZERO, ZERO)];
-        let mut serial = OpilioSerial::new()?;
+        let ports = OpilioSerialDevice::find_ports(VID, PID)?;
+        let port = ports
+            .first()
+            .ok_or_else(|| anyhow!("No Opilio device found"))?;
+        let mut serial = OpilioSerialDevice::new(&port.port_name)?;
         let config_path = config_file()?.display().to_string();
 
         let config = serial.get_config()?;

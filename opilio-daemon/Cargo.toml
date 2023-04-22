@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 daemonize-me = "2.0"
-opilio-tui = { path = "../opilio-tui"}
+opilio-lib = { path = "../opilio-lib", features = ["std"]}
 anyhow = "1.0"
 dirs = "5.0"
 

@@ -1,5 +1,4 @@
-use std::collections::VecDeque;
-use std::time::Duration;
+use std::{collections::VecDeque, time::Duration};
 
 use chrono::{DateTime, Utc};
 use iced::{
@@ -281,7 +280,8 @@ impl Chart<Message> for MonitoringChart {
         state: &Self::State,
         mut chart: ChartBuilder<DB>,
     ) {
-        //! This silently ignores error because there is nothing useful that can be done about them.
+        //! This silently ignores error because there is nothing useful that can
+        //! be done about them.
         let newest_time = self
             .data_points
             .front()

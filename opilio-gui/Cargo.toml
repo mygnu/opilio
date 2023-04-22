@@ -14,8 +14,7 @@ rand = "0.8"
 log = "0.4"
 env_logger = "0.10"
 cubic_spline = "1.0"
-opilio-tui = { path = "../opilio-tui"}
-opilio-lib = { path = "../opilio-lib"}
+opilio-lib = { path = "../opilio-lib", features = ["std"]}
 time = { version = "0.3", features = ["local-offset"] }
 plotters = { version = "0.3", default_features = false, features = [
     "chrono",
@@ -26,8 +25,8 @@ plotters = { version = "0.3", default_features = false, features = [
 plotters-iced = "0.8.0"
 chrono = { version = "0.4", default-features = false }
 plotters-backend = "0.3"
-serial2 = "0.1"
-tray-icon = "0.4"
+tao= "0.19"
+tray-icon = "0.5"
 
 
 [[bin]]

@@ -1,29 +1,29 @@
-use std::time::Duration;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use chrono::Utc;
-use iced::widget::toggler;
 use iced::{
     alignment,
     widget::{
-        horizontal_rule, horizontal_space, vertical_space, Column, Container,
-        Row, Text,
+        horizontal_rule, horizontal_space, toggler, vertical_space, Column,
+        Container, Row, Text,
     },
     Alignment, Command, Element, Length,
 };
 use iced_aw::NumberInput;
-use opilio_lib::Config;
-use opilio_tui::OpilioSerial;
+use opilio_lib::{
+    serial::{OpilioSerialDevice, PortWithSerialNumber},
+    Config, SwitchMode,
+};
 
-use crate::graphs::{ChartGroup, MonitoringData};
-use crate::Message;
+use crate::{
+    graphs::{ChartGroup, MonitoringData},
+    Message,
+};
 
 pub struct RunningState {
     last_sample_time: Instant,
-    opilio_serial: OpilioSerial,
-    firmware_version_major: u8,
-    firmware_version_minor: u8,
-    hardware_version: u32,
+    opilio_serial: OpilioSerialDevice,
+    version: String,
     chart: ChartGroup,
     config: Config,
     error_text: Option<String>,
@@ -32,28 +32,25 @@ pub struct RunningState {
 }
 
 impl RunningState {
-    pub fn new<T>(_serial_port: &T) -> Result<Self, anyhow::Error>
-    where
-        T: AsRef<std::path::Path> + std::fmt::Debug,
-    {
-        let mut opilio_serial = OpilioSerial::new()?;
-        let firmware_version_major = 0;
-        let firmware_version_minor = 0;
-        let hardware_version = 0;
+    pub fn new(
+        port_with_serial: PortWithSerialNumber,
+    ) -> Result<Self, anyhow::Error> {
+        let mut opilio_serial =
+            OpilioSerialDevice::new(&port_with_serial.port_name)?;
 
         let config = opilio_serial.get_config()?;
 
         Ok(RunningState {
             last_sample_time: Instant::now(),
             opilio_serial,
-            firmware_version_major,
-            firmware_version_minor,
-            hardware_version,
             chart: Default::default(),
             config,
             error_text: None,
             update_interval: Duration::from_millis(500),
             testing: false,
+            version: port_with_serial
+                .serial_number
+                .unwrap_or_else(|| "Unknown".to_string()),
         })
     }
     #[inline]
@@ -91,7 +88,7 @@ impl RunningState {
                 }
             }
             Message::SetSleepAfter(sleep_after) => {
-                self.config.general.sleep_after = Some(sleep_after);
+                self.config.general.sleep_after = sleep_after;
             }
             Message::SetTriggerAboveAmbient(trigger_above_ambient) => {
                 if let Some(smart_mode) = self.config.smart_mode.as_mut() {
@@ -108,11 +105,18 @@ impl RunningState {
                     smart_mode.pump_duty = pump_duty;
                 }
             }
-            Message::ToggleSleep(enable) => {
+            Message::ToggleBuzzer(enable) => {
                 if enable {
-                    self.config.general.sleep_after = Some(1);
+                    self.config.general.buzzer = SwitchMode::On;
                 } else {
-                    self.config.general.sleep_after = None
+                    self.config.general.buzzer = SwitchMode::Off;
+                }
+            }
+            Message::ToggleLed(enable) => {
+                if enable {
+                    self.config.general.led = SwitchMode::On;
+                } else {
+                    self.config.general.led = SwitchMode::Off;
                 }
             }
             Message::Test => {
@@ -202,26 +206,15 @@ impl RunningState {
             .push(
                 Row::new()
                     .push(
-                        Column::new()
-                            .push(
-                                Row::new().push(
-                                    Text::new(format!(
-                                        "Firmware Version: {:X}.{:X}",
-                                        self.firmware_version_major,
-                                        self.firmware_version_minor
-                                    ))
-                                    .size(28),
-                                ),
-                            )
-                            .push(
-                                Row::new().push(
-                                    Text::new(format!(
-                                        "Hardware Version: {}",
-                                        self.hardware_version
-                                    ))
-                                    .size(28),
-                                ),
+                        Column::new().push(
+                            Row::new().push(
+                                Text::new(format!(
+                                    "Firmware Version: {}",
+                                    self.version
+                                ))
+                                .size(28),
                             ),
+                        ),
                     )
                     .padding(15),
             )
@@ -230,22 +223,32 @@ impl RunningState {
             .push(
                 Row::new().push(horizontal_space(Length::Fill)).push(
                     toggler(
-                        String::from("Auto Sleep"),
-                        self.config.general.sleep_after.is_some(),
-                        Message::ToggleSleep,
+                        String::from("Buzzer Warning"),
+                        self.config.general.buzzer.is_on(),
+                        Message::ToggleBuzzer,
                     )
                     .width(Length::Shrink)
                     .spacing(10),
                 ),
-            );
-        if self.config.general.sleep_after.is_some() {
-            content = content.push(
+            )
+            .push(
+                Row::new().push(horizontal_space(Length::Fill)).push(
+                    toggler(
+                        String::from("Led Warning"),
+                        self.config.general.led.is_on(),
+                        Message::ToggleLed,
+                    )
+                    .width(Length::Shrink)
+                    .spacing(10),
+                ),
+            )
+            .push(
                 Row::new()
                     .push(Text::new("Sleep after (Sec)"))
                     .push(horizontal_space(Length::Fill))
                     .push(
                         NumberInput::new(
-                            self.config.general.sleep_after.unwrap_or_default(),
+                            self.config.general.sleep_after,
                             500,
                             Message::SetSleepAfter,
                         )
@@ -256,7 +259,6 @@ impl RunningState {
                     .padding(5)
                     .spacing(5),
             );
-        }
 
         if let Some(ref smart_mode) = self.config.smart_mode {
             content = content
@@ -314,9 +316,13 @@ impl RunningState {
                         .spacing(5),
                 );
         };
-        // let hide_button = button("Hide Window")
-        //     .style(iced::theme::Button::Primary)
-        //     .on_press(Message::Hide);
+
+        let hide_button = iced::widget::button("Minimize")
+            .style(iced::theme::Button::Primary)
+            .padding(10)
+            .width(Length::Fixed(110.0))
+            .on_press(Message::Hide);
+
         let test_button = iced::widget::tooltip(
             iced::widget::button(
                 iced::widget::text(if self.testing {
@@ -373,6 +379,7 @@ impl RunningState {
             .push(vertical_space(Length::Fill))
             .push(
                 Row::new()
+                    .push(hide_button)
                     .push(horizontal_space(Length::Fill))
                     .push(reset_button)
                     .padding(2)
@@ -506,7 +513,8 @@ impl RunningState {
 //         "PID INVALID",
 //     );
 //     col =
-//         add_badge_if_flag_set(col, status, TecStatus::OCP_ACTIVE, "OCP ACTIVE");
+//         add_badge_if_flag_set(col, status, TecStatus::OCP_ACTIVE, "OCP
+// ACTIVE");
 
 //     if status.contains(TecStatus::LOW_POWER_MODE_ACTIVE) {
 //         col = col.push(

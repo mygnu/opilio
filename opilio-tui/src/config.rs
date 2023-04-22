@@ -1,6 +1,6 @@
-use anyhow::{anyhow, bail, Ok, Result};
 use std::{fs, path::PathBuf};
 
+use anyhow::{anyhow, bail, Ok, Result};
 use opilio_lib::Config;
 const CONFIG_DIR_NAME: &str = "opilio";
 const CONFIG_FILE_NAME: &str = "opilio.json";
@@ -26,11 +26,3 @@ pub fn from_disk() -> Result<Config> {
         bail!("Config file does not exists")
     }
 }
-
-// pub fn save_config(config: &Config) -> Result<()> {
-//     let path = config_file()?;
-//     let data = serde_json::to_string_pretty(&config)?;
-
-//     fs::write(path, data)?;
-//     Ok(())
-// }

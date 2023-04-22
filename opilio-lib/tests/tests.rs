@@ -2,11 +2,10 @@ use opilio_lib::*;
 
 #[test]
 fn should_fail_with_invalid_pair() {
-    let fan = FanSetting::new(Id::F2);
     let default_config = Config::default();
     let empty = DataRef::Empty;
     let config = DataRef::Config(&default_config);
-    let setting = DataRef::Setting(&fan);
+
     let stats = DataRef::Stats(&Stats {
         pump1_rpm: f32::MAX,
         fan1_rpm: f32::MAX,
@@ -16,50 +15,42 @@ fn should_fail_with_invalid_pair() {
         liquid_out_temp: f32::MAX,
         ambient_temp: f32::MAX,
     });
-    let id = DataRef::SettingId(&Id::P1);
+
     let response = DataRef::Result(&Response::Ok);
 
-    OTW::serialised_vec(Cmd::SaveConfig, empty.clone()).unwrap();
-    OTW::serialised_vec(Cmd::SaveConfig, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::SaveConfig, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::SaveConfig, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::SaveConfig, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::SaveConfig, empty.clone()).unwrap();
+    OTW::serialised_vec(Msg::SaveConfig, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::SaveConfig, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::SaveConfig, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::GetStats, empty.clone()).unwrap();
-    OTW::serialised_vec(Cmd::GetStats, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetStats, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetStats, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetStats, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetStats, empty.clone()).unwrap();
+    OTW::serialised_vec(Msg::GetStats, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetStats, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetStats, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::Config, empty.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Config, config.clone()).unwrap();
-    OTW::serialised_vec(Cmd::Config, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Config, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Config, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Config, empty.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Config, config.clone()).unwrap();
+    OTW::serialised_vec(Msg::Config, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Config, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::UploadSetting, empty.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::UploadSetting, setting.clone()).unwrap();
-    OTW::serialised_vec(Cmd::UploadSetting, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::UploadSetting, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::UploadSetting, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Ping, empty.clone()).unwrap();
+    OTW::serialised_vec(Msg::Ping, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Ping, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::Stats, empty.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Stats, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Stats, stats.clone()).unwrap();
-    OTW::serialised_vec(Cmd::Stats, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Stats, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Stats, empty.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Stats, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Stats, stats.clone()).unwrap();
+    OTW::serialised_vec(Msg::Stats, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::GetConfig, empty.clone()).unwrap();
-    OTW::serialised_vec(Cmd::GetConfig, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetConfig, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetConfig, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetConfig, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetConfig, empty.clone()).unwrap();
+    OTW::serialised_vec(Msg::GetConfig, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetConfig, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetConfig, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::Result, empty.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Result, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Result, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Result, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Result, response.clone()).unwrap();
+    OTW::serialised_vec(Msg::Result, empty.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Result, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Result, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Result, response.clone()).unwrap();
     // consider a testing framework at this point
 }
 
@@ -75,13 +66,13 @@ fn should_serde_stats_data() {
         ambient_temp: 20.0,
     };
 
-    let vec = OTW::serialised_vec(Cmd::Stats, DataRef::Stats(&stats)).unwrap();
+    let vec = OTW::serialised_vec(Msg::Stats, DataRef::Stats(&stats)).unwrap();
     println!("{:?}", vec);
     let otw = OTW::from_bytes(&vec).unwrap();
     assert_eq!(
         otw,
         OTW {
-            cmd: Cmd::Stats,
+            msg: Msg::Stats,
             data: Data::Stats(stats)
         }
     );
@@ -223,7 +214,7 @@ fn should_create_default_ok() {
     assert_eq!(
         otw,
         OTW {
-            cmd: Cmd::Result,
+            msg: Msg::Result,
             data: Data::Result(Response::Ok)
         }
     )
