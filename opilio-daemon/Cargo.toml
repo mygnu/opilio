@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-daemonize-me = "2.0"
-opilio-lib = { path = "../opilio-lib", features = ["std"]}
 anyhow = "1.0"
+daemonize-me = "2.0"
 dirs = "5.0"
+opilio-lib = { path = "../opilio-lib", features = ["std"]}
 
 [[bin]]
 name = "opilio-daemon"

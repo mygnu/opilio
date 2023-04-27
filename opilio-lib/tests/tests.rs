@@ -1,3 +1,5 @@
+use std::ops::Mul;
+
 use opilio_lib::*;
 
 #[test]
@@ -218,4 +220,13 @@ fn should_create_default_ok() {
             data: Data::Result(Response::Ok)
         }
     )
+}
+
+#[test]
+fn should_test_fixed() {
+    let duty: Fixed = Fixed::from_num(100.0_f32);
+    println!("100: {:?}", duty.to_bits());
+    let duty1: Fixed = Fixed::from_num(10.0_f32);
+    println!("10.0: {:?}", duty1.to_bits());
+    println!("duty: {:?}", duty.mul(duty1).to_num::<f32>());
 }

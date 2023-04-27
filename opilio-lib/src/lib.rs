@@ -2,10 +2,13 @@
 
 use defmt::Format;
 use error::Error;
+use fixed::types::extra::U4;
 use heapless::Vec;
 pub use otw::OTW;
 use postcard::{from_bytes, to_vec};
 use serde::{Deserialize, Serialize};
+
+pub type Fixed = fixed::FixedU32<U4>;
 
 pub const MAX_DUTY_PERCENT: f32 = 100.0;
 pub const MIN_DUTY_PERCENT: f32 = 10.0; // 10% usually when a pwm fan starts to spin

@@ -7,30 +7,30 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-iced = { version = "0.9", features = ["canvas", "tokio"] }
-iced_native = "0.10"
-iced_aw = "0.5"
-rand = "0.8"
-log = "0.4"
-env_logger = "0.10"
+chrono = { version = "0.4", default-features = false }
 cubic_spline = "1.0"
+env_logger = "0.10"
+iced = { version = "0.9", default-features = false, features = ["canvas", "tokio", "glow"] }
+iced_aw = "0.5"
+iced_native = "0.10"
+log = "0.4"
 opilio-lib = { path = "../opilio-lib", features = ["std"]}
-time = { version = "0.3", features = ["local-offset"] }
 plotters = { version = "0.3", default_features = false, features = [
     "chrono",
     "area_series",
     "line_series",
     "point_series",
 ] }
-plotters-iced = "0.8.0"
-chrono = { version = "0.4", default-features = false }
 plotters-backend = "0.3"
+plotters-iced = "0.8.0"
+rand = "0.8"
 tao= "0.19"
+time = { version = "0.3", features = ["local-offset"] }
 tray-icon = "0.5"
 
 
 [[bin]]
-name = "opilio-gui"
+name = "opilio"
 path = "src/main.rs"
 
 [build-dependencies]
