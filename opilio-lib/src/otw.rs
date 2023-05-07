@@ -1,4 +1,3 @@
-use defmt::Format;
 use heapless::Vec;
 use postcard::{from_bytes, to_vec};
 use serde::Serialize;
@@ -6,7 +5,8 @@ use serde::Serialize;
 use crate::{error::Error, Data, DataRef, Msg, Result, MAX_SERIAL_DATA_SIZE};
 
 /// Over The Wire protocol
-#[derive(Debug, Format, PartialEq)]
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct OTW {
     pub msg: Msg,
     pub data: Data,

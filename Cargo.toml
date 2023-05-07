@@ -1,3 +1,7 @@
 [workspace]
 
 members = ["opilio-gui", "opilio-lib", "opilio-tui", "opilio-daemon"]
+
+[profile.release]
+lto = true
+codegen-units = 1

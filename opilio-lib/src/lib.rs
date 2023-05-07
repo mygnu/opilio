@@ -1,6 +1,5 @@
 #![no_std]
 
-use defmt::Format;
 use error::Error;
 use fixed::types::extra::U4;
 use heapless::Vec;
@@ -31,7 +30,9 @@ pub mod otw;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug, Copy, Clone, Format, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[repr(u8)]
 pub enum Msg {
     Ping = 1,
     Pong = 2,
@@ -54,7 +55,8 @@ pub enum DataRef<'a> {
     Empty,
 }
 
-#[derive(Format, Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Data {
     Config(Config),
     Stats(Stats),
@@ -63,7 +65,9 @@ pub enum Data {
     Empty,
 }
 
-#[derive(Format, Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[repr(u8)]
 pub enum Id {
     P1 = 1,
     F1 = 2,
@@ -71,7 +75,8 @@ pub enum Id {
     F3 = 4,
 }
 
-#[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
+#[derive(Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Stats {
     pub pump1_rpm: f32,
     pub fan1_rpm: f32,
@@ -82,7 +87,8 @@ pub struct Stats {
     pub liquid_out_temp: f32,
 }
 
-#[derive(Copy, Debug, Clone, Format, Deserialize, Serialize, PartialEq)]
+#[derive(Copy, Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct FanSetting {
     pub id: Id,
     pub curve: [(f32, f32); 4],
@@ -140,13 +146,15 @@ impl FanSetting {
     }
 }
 
-#[derive(Format, Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Response {
     Ok,
     Error(Error),
 }
 
-#[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct SmartMode {
     pub trigger_above_ambient: f32,
     pub upper_temp: f32,
@@ -163,10 +171,9 @@ impl Default for SmartMode {
     }
 }
 
-#[derive(
-    Format, Copy, Clone, Deserialize, Serialize, Debug, Default, PartialEq,
-)]
+#[derive(Copy, Clone, Deserialize, Serialize, Debug, Default, PartialEq)]
 #[serde(rename_all = "lowercase")]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SwitchMode {
     #[default]
     On,
@@ -179,7 +186,8 @@ impl SwitchMode {
     }
 }
 
-#[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GeneralConfig {
     pub sleep_after: u32,
     pub led: SwitchMode,
@@ -196,7 +204,8 @@ impl Default for GeneralConfig {
     }
 }
 
-#[derive(Format, Clone, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Config {
     pub general: GeneralConfig,
     pub smart_mode: Option<SmartMode>,
@@ -234,6 +243,7 @@ impl Config {
     pub fn set(&mut self, config: FanSetting) {
         for c in self.settings.iter_mut() {
             if c.id == config.id {
+                #[cfg(feature = "defmt")]
                 defmt::debug!("setting new config {:?}", config);
                 *c = config;
                 break;

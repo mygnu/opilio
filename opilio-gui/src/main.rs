@@ -21,7 +21,6 @@ use opilio_lib::{
     PID, VID,
 };
 use running::RunningState;
-use tao::event_loop::EventLoop;
 use tray_icon::{
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
     TrayIconBuilder,
@@ -43,11 +42,9 @@ const ICON: &[u8; 16384] =
 fn main() {
     let icon = tray_icon::icon::Icon::from_rgba(ICON.to_vec(), 64, 64)
         .expect("Failed to open icon");
-
-    let _event_loop = EventLoop::new();
-
+    #[cfg(target_os = "linux")]
+    let _event_loop = tao::event_loop::EventLoop::new();
     let tray_menu = Menu::new();
-
     let quit_i = MenuItem::new("Quit", true, None);
     tray_menu.append_items(&[
         &MenuItem::new("Show", true, None),
@@ -57,19 +54,18 @@ fn main() {
 
     let tray_icon = TrayIconBuilder::new()
         .with_menu(Box::new(tray_menu))
-        .with_tooltip("Opilio Cooler Controller")
+        .with_tooltip("Opilio Controller")
         .with_icon(icon)
         .build();
 
-    let _tray_icon = match tray_icon {
-        Err(error) => match error {
+    if let Err(error) = tray_icon {
+        match error {
             tray_icon::Error::OsError(err) => {
                 std::process::exit(err.raw_os_error().unwrap_or(-1))
             }
             _ => std::process::exit(-1),
-        },
-        Ok(tray_icon) => tray_icon,
-    };
+        }
+    }
 
     let _ = OpilioController::run(Settings {
         antialiasing: true,
