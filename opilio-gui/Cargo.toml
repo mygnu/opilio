@@ -10,7 +10,6 @@ anyhow = "1.0"
 chrono = { version = "0.4", default-features = false }
 cubic_spline = "1.0"
 env_logger = "0.10"
-iced = { version = "0.9", default-features = false, features = ["canvas", "tokio", "glow"] }
 iced_aw = "0.5"
 iced_native = "0.10"
 log = "0.4"
@@ -22,12 +21,17 @@ plotters = { version = "0.3", default_features = false, features = [
     "point_series",
 ] }
 plotters-backend = "0.3"
-plotters-iced = "0.8.0"
+plotters-iced = "0.8"
 rand = "0.8"
-tao= "0.19"
-time = { version = "0.3", features = ["local-offset"] }
+# time = { version = "0.3", features = ["local-offset"] }
 tray-icon = "0.5"
 
+[target."cfg(target_os=\"linux\")".dependencies]
+tao = { version = "0.19"}
+iced = { version = "0.9", default-features = false, features = ["canvas", "tokio", "glow"] }
+
+[target."cfg(target_os=\"windows\")".dependencies]
+iced = { version = "0.9", features = ["canvas", "tokio", "debug"] }
 
 [[bin]]
 name = "opilio"

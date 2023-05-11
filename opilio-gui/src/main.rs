@@ -43,7 +43,8 @@ fn main() {
     let icon = tray_icon::icon::Icon::from_rgba(ICON.to_vec(), 64, 64)
         .expect("Failed to open icon");
     #[cfg(target_os = "linux")]
-    let _event_loop = tao::event_loop::EventLoop::new();
+    let event_loop = tao::event_loop::EventLoop::new();
+
     let tray_menu = Menu::new();
     let quit_i = MenuItem::new("Quit", true, None);
     tray_menu.append_items(&[
