@@ -321,7 +321,7 @@ pub mod serial {
 
     use anyhow::{anyhow, bail, Ok, Result};
     use log::info;
-    use serialport::{ClearBuffer, SerialPort, SerialPortType};
+    use serialport::{ClearBuffer, DataBits, SerialPort, SerialPortType};
 
     use super::{Config, Data, DataRef, Msg, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 
@@ -353,7 +353,8 @@ pub mod serial {
     impl OpilioSerialDevice {
         pub fn new(port_name: &str) -> Result<Self> {
             let port = serialport::new(port_name, 115_200)
-                .timeout(Duration::from_secs(1))
+                .timeout(Duration::from_millis(100))
+                .data_bits(DataBits::Eight)
                 .open()
                 .map_err(|e| {
                     anyhow!("Failed to connect to {port_name}, ({e})")

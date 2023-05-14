@@ -2,7 +2,7 @@
 name = "opilio-tui"
 version = "0.3.0"
 edition = "2021"
-author = "Harry Gill <tech@gill.net.in>"
+authors = ["Harry Gill <tech@gill.net.in>"]
 description = "TUI interface for opilio Pump/Fan controller"
 default-run = "opilio-tui"
 
