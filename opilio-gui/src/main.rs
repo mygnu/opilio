@@ -275,15 +275,12 @@ impl Application for OpilioController {
             }
         }
 
-        match message {
-            Message::Hide => {
-                return Command::single(iced_native::command::Action::Window(
-                    iced_native::window::Action::ChangeMode(
-                        iced::window::Mode::Hidden,
-                    ),
-                ));
-            }
-            _ => {}
+        if let Message::Hide = message {
+            return Command::single(iced_native::command::Action::Window(
+                iced_native::window::Action::ChangeMode(
+                    iced::window::Mode::Hidden,
+                ),
+            ));
         }
         if let Some(value) = self.run_if_port_is_selected() {
             return value;

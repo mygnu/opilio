@@ -7,7 +7,7 @@ pub use otw::OTW;
 use postcard::{from_bytes, to_vec};
 use serde::{Deserialize, Serialize};
 
-pub type Fixed = fixed::FixedU32<U4>;
+pub type Fixed = fixed::FixedI32<U4>;
 
 pub const MAX_DUTY_PERCENT: f32 = 100.0;
 pub const MIN_DUTY_PERCENT: f32 = 10.0; // 10% usually when a pwm fan starts to spin
@@ -17,7 +17,6 @@ pub const MAX_TEMP: f32 = 50.0;
 pub const CONFIG_SIZE: usize = 18;
 pub const STATS_DATA_SIZE: usize = 20;
 pub const MAX_SERIAL_DATA_SIZE: usize = 256;
-pub const DEFAULT_SLEEP_AFTER: u32 = 60 * 5; // five minutes
 pub const SWITCH_TEMP_BUFFER: f32 = 1.0;
 
 // requested from https:://pid.codes
@@ -142,7 +141,7 @@ impl FanSetting {
             }
             previous = *current;
         }
-        return true;
+        true
     }
 }
 
@@ -312,7 +311,6 @@ pub mod serial {
 
     use std::{
         boxed::Box,
-        dbg,
         io::{Read, Write},
         string::{String, ToString},
         time::Duration,
@@ -325,6 +323,8 @@ pub mod serial {
     use serialport::{ClearBuffer, DataBits, SerialPort, SerialPortType};
 
     use super::{Config, Data, DataRef, Msg, Stats, MAX_SERIAL_DATA_SIZE, OTW};
+
+    const SERIAL_TIMEOUT_MS: u64 = 20;
 
     pub struct OpilioSerialDevice {
         name: String,
@@ -367,7 +367,6 @@ pub mod serial {
             let ports: Vec<_> = serialport::available_ports()?
                 .into_iter()
                 .filter_map(|info| {
-                    dbg!(&info);
                     if let SerialPortType::UsbPort(port) = info.port_type {
                         if port.vid == vid && port.pid == pid {
                             Some(PortWithSerialNumber {
@@ -382,7 +381,6 @@ pub mod serial {
                     }
                 })
                 .collect();
-            dbg!(&ports);
             Ok(ports)
         }
 
@@ -507,7 +505,7 @@ pub mod serial {
             port_name: &str,
         ) -> Result<Box<dyn SerialPort>, anyhow::Error> {
             let port = serialport::new(port_name, 115_200)
-                .timeout(Duration::from_millis(10))
+                .timeout(Duration::from_millis(SERIAL_TIMEOUT_MS))
                 .data_bits(DataBits::Eight)
                 .open()
                 .map_err(|e| {

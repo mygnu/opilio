@@ -222,11 +222,26 @@ fn should_create_default_ok() {
     )
 }
 
+pub const MAX_DUTY_PERCENT: f32 = 100.0;
+pub const MIN_DUTY_PERCENT: f32 = 15.0; // 10% usually when a pwm fan starts to spin
+pub const MIN_TEMP: f32 = 15.0;
+pub const MAX_TEMP: f32 = 50.0;
+
 #[test]
 fn should_test_fixed() {
-    let duty: Fixed = Fixed::from_num(100.0_f32);
-    println!("100: {:?}", duty.to_bits());
-    let duty1: Fixed = Fixed::from_num(10.0_f32);
-    println!("10.0: {:?}", duty1.to_bits());
-    println!("duty: {:?}", duty.mul(duty1).to_num::<f32>());
+    let max_duty_percent: Fixed = Fixed::from_bits(1600);
+    println!("MAX_DUTY_PERCENT: {:?}", max_duty_percent.to_bits());
+    assert_eq!(max_duty_percent, Fixed::from_num(MAX_DUTY_PERCENT));
+
+    let min_duty_percent: Fixed = Fixed::from_bits(240);
+    println!("MIN_DUTY_PERCENT: {:?}", min_duty_percent.to_bits());
+    assert_eq!(min_duty_percent, Fixed::from_num(MIN_DUTY_PERCENT));
+
+    let min_temp: Fixed = Fixed::from_bits(240);
+    println!("MIN_TEMP: {:?}", min_temp.to_bits());
+    assert_eq!(min_temp, Fixed::from_num(MIN_TEMP));
+
+    let max_temp: Fixed = Fixed::from_bits(800);
+    println!("MAX_TEMP: {:?}", max_temp.to_bits());
+    assert_eq!(max_temp, Fixed::from_num(MAX_TEMP));
 }

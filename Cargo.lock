@@ -2828,7 +2828,6 @@ dependencies = [
  "opilio-lib",
  "postcard",
  "serde_json",
- "serialport",
  "tui",
 ]
 

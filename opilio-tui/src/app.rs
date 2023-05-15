@@ -422,9 +422,9 @@ impl App {
                 Style::default(),
             ),
             InputMode::SavePrompt => (
-                vec![Span::raw(format!(
-                    "Would you like to save current configuration on controller?",
-                )),
+                vec![Span::raw(
+                    "Would you like to save current configuration on controller?"
+                ),
                 Span::styled(
                     " Y/N:",
                     Style::default()
