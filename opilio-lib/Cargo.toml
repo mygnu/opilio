@@ -13,7 +13,7 @@ heapless = { version = "0.7" }
 log = { version = "0.4", optional = true }
 postcard = { version = "1.0" }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
-tokio-serial = { version = "5.4", optional = true }
+serialport = { version = "4.2", optional = true }
 
 [dev-dependencies]
 serde_json = "1.0"
@@ -21,5 +21,5 @@ serde_json = "1.0"
 
 [features]
 # Enables std support, it does not enable any other features.
-std = ["anyhow", "tokio-serial", "log"]
+std = ["anyhow", "serialport", "log"]
 defmt = ["dep:defmt", "postcard/use-defmt", "heapless/defmt-impl"]

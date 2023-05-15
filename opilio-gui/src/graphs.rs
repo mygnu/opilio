@@ -45,6 +45,9 @@ pub struct ChartGroup {
     chart_height: f32,
 }
 
+const FAN_MIN_RPM: f32 = 400.0;
+const FAN_MAX_RPM: f32 = 800.0;
+
 impl Default for ChartGroup {
     fn default() -> Self {
         Self {
@@ -59,24 +62,24 @@ impl Default for ChartGroup {
             f1_rpm_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
                 "Fan 1".to_owned(),
-                400.0,
-                1000.0,
+                FAN_MIN_RPM,
+                FAN_MAX_RPM,
                 "RPM".to_owned(),
                 PLOT_LINE_COLOR_RPM.mix(0.20),
             ),
             f2_rpm_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
                 "Fan 2".to_owned(),
-                400.0,
-                1000.0,
+                FAN_MIN_RPM,
+                FAN_MAX_RPM,
                 "RPM".to_owned(),
                 PLOT_LINE_COLOR_RPM.mix(0.20),
             ),
             f3_rpm_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
                 "Fan 3".to_owned(),
-                400.0,
-                1000.0,
+                FAN_MIN_RPM,
+                FAN_MAX_RPM,
                 "RPM".to_owned(),
                 PLOT_LINE_COLOR_RPM.mix(0.20),
             ),

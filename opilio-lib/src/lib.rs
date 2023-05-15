@@ -166,7 +166,7 @@ impl Default for SmartMode {
         Self {
             trigger_above_ambient: 5.0,
             upper_temp: 40.0,
-            pump_duty: 80.0,
+            pump_duty: 95.0,
         }
     }
 }
@@ -197,7 +197,7 @@ pub struct GeneralConfig {
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            sleep_after: 5,
+            sleep_after: 3600,
             led: Default::default(),
             buzzer: Default::default(),
         }
@@ -312,6 +312,7 @@ pub mod serial {
 
     use std::{
         boxed::Box,
+        dbg,
         io::{Read, Write},
         string::{String, ToString},
         time::Duration,
@@ -321,7 +322,7 @@ pub mod serial {
 
     use anyhow::{anyhow, bail, Ok, Result};
     use log::info;
-    use tokio_serial::{ClearBuffer, DataBits, SerialPort, SerialPortType};
+    use serialport::{ClearBuffer, DataBits, SerialPort, SerialPortType};
 
     use super::{Config, Data, DataRef, Msg, Stats, MAX_SERIAL_DATA_SIZE, OTW};
 
@@ -363,9 +364,10 @@ pub mod serial {
             vid: u16,
             pid: u16,
         ) -> Result<Vec<PortWithSerialNumber>, anyhow::Error> {
-            let ports: Vec<_> = tokio_serial::available_ports()?
+            let ports: Vec<_> = serialport::available_ports()?
                 .into_iter()
                 .filter_map(|info| {
+                    dbg!(&info);
                     if let SerialPortType::UsbPort(port) = info.port_type {
                         if port.vid == vid && port.pid == pid {
                             Some(PortWithSerialNumber {
@@ -380,6 +382,7 @@ pub mod serial {
                     }
                 })
                 .collect();
+            dbg!(&ports);
             Ok(ports)
         }
 
@@ -503,8 +506,8 @@ pub mod serial {
         fn open_port(
             port_name: &str,
         ) -> Result<Box<dyn SerialPort>, anyhow::Error> {
-            let port = tokio_serial::new(port_name, 115_200)
-                .timeout(Duration::from_millis(50))
+            let port = serialport::new(port_name, 115_200)
+                .timeout(Duration::from_millis(10))
                 .data_bits(DataBits::Eight)
                 .open()
                 .map_err(|e| {
