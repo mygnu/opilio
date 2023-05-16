@@ -86,7 +86,7 @@ impl Default for ChartGroup {
             ),
             ambient_temp_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
-                "Ambient Temp".to_owned(),
+                "Ambient".to_owned(),
                 20.0,
                 30.0,
                 "C".to_owned(),
@@ -94,7 +94,7 @@ impl Default for ChartGroup {
             ),
             liq_in_temp_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
-                "Liquid In Temp".to_owned(),
+                "Coolant In".to_owned(),
                 20.0,
                 30.0,
                 "C".to_owned(),
@@ -102,7 +102,7 @@ impl Default for ChartGroup {
             ),
             liq_out_temp_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
-                "Liquid Out Temp".to_owned(),
+                "Coolant Out".to_owned(),
                 20.0,
                 30.0,
                 "C".to_owned(),
@@ -259,19 +259,6 @@ impl Chart<Message> for MonitoringChart {
             }
         }
         (iced_native::event::Status::Ignored, None)
-    }
-
-    fn mouse_interaction(
-        &self,
-        state: &Self::State,
-        _bounds: iced::Rectangle,
-        _cursor: iced::widget::canvas::Cursor,
-    ) -> iced_native::mouse::Interaction {
-        if state.mouse_x_position.is_some() {
-            iced_native::mouse::Interaction::Crosshair
-        } else {
-            iced_native::mouse::Interaction::Idle
-        }
     }
 
     #[inline]

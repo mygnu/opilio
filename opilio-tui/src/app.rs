@@ -35,8 +35,8 @@ pub struct App {
     config_path: String,
     serial: OpilioSerialDevice,
     last_point: f64,
-    liquid_temp: Vec<(f64, f64)>,
-    liquid_out_temp: Vec<(f64, f64)>,
+    coolant_temp: Vec<(f64, f64)>,
+    coolant_out_temp: Vec<(f64, f64)>,
     ambient_temp: Vec<(f64, f64)>,
     pump1: Vec<(f64, f64)>,
     fan1: Vec<(f64, f64)>,
@@ -55,8 +55,8 @@ impl App {
         let fan1 = vec![(ZERO, ZERO)];
         let fan2 = vec![(ZERO, ZERO)];
         let fan3 = vec![(ZERO, ZERO)];
-        let liquid_temp = vec![(ZERO, ZERO)];
-        let liquid_out_temp = vec![(ZERO, ZERO)];
+        let coolant_temp = vec![(ZERO, ZERO)];
+        let coolant_out_temp = vec![(ZERO, ZERO)];
         let ambient_temp = vec![(ZERO, ZERO)];
         let ports = OpilioSerialDevice::find_ports(VID, PID)?;
         let port = ports
@@ -75,8 +75,8 @@ impl App {
             fan2,
             fan3,
             window: [ZERO, TIME_SPAN],
-            liquid_temp,
-            liquid_out_temp,
+            coolant_temp,
+            coolant_out_temp,
             config_path,
             ambient_temp,
             current_temps: [ZERO; 3],
@@ -105,8 +105,8 @@ impl App {
         self.window[0] += TICK_DISTANCE;
         self.window[1] += TICK_DISTANCE;
 
-        if self.liquid_temp.len() > TICKS_OVER_TIME {
-            self.liquid_temp.remove(0);
+        if self.coolant_temp.len() > TICKS_OVER_TIME {
+            self.coolant_temp.remove(0);
             self.ambient_temp.remove(0);
             self.pump1.remove(0);
             self.fan1.remove(0);
@@ -117,12 +117,12 @@ impl App {
         self.last_point += TICK_DISTANCE;
         match self.serial.get_stats() {
             Ok(stats) => {
-                let [current_liquid, current_ambient, current_liquid_out] =
+                let [current_coolant, current_ambient, current_coolant_out] =
                     self.current_temps;
                 self.current_temps = [
-                    (stats.liquid_temp as f64 + current_liquid * 5.0) / 6.0,
+                    (stats.coolant_temp as f64 + current_coolant * 5.0) / 6.0,
                     (stats.ambient_temp as f64 + current_ambient * 5.0) / 6.0,
-                    (stats.liquid_out_temp as f64 + current_liquid_out * 5.0)
+                    (stats.coolant_out_temp as f64 + current_coolant_out * 5.0)
                         / 6.0,
                 ];
 
@@ -146,11 +146,11 @@ impl App {
         self.fan1.push((self.last_point, self.current_rpms[1]));
         self.fan2.push((self.last_point, self.current_rpms[2]));
         self.fan3.push((self.last_point, self.current_rpms[3]));
-        self.liquid_temp
+        self.coolant_temp
             .push((self.last_point, self.current_temps[0]));
         self.ambient_temp
             .push((self.last_point, self.current_temps[1]));
-        self.liquid_out_temp
+        self.coolant_out_temp
             .push((self.last_point, self.current_temps[2]));
     }
 
@@ -167,13 +167,13 @@ impl App {
                 .marker(symbols::Marker::Braille)
                 .style(Style::default().fg(Color::Red))
                 .graph_type(GraphType::Line)
-                .data(&self.liquid_temp),
+                .data(&self.coolant_temp),
             Dataset::default()
                 .name(format!("Liq(O): {:.2}°C", self.current_temps[2]))
                 .marker(symbols::Marker::Braille)
                 .style(Style::default().fg(Color::Green))
                 .graph_type(GraphType::Line)
-                .data(&self.liquid_out_temp),
+                .data(&self.coolant_out_temp),
         ];
         let temp_chart = Chart::new(temp_datasets)
             .block(

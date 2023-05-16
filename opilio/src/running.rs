@@ -75,8 +75,8 @@ impl RunningState {
                             f2_rpm: stats.fan2_rpm,
                             f3_rpm: stats.fan3_rpm,
                             ambient_temp: stats.ambient_temp,
-                            liq_in_temp: stats.liquid_temp,
-                            liq_out_temp: stats.liquid_out_temp,
+                            liq_in_temp: stats.coolant_temp,
+                            liq_out_temp: stats.coolant_out_temp,
                         };
                         self.chart.update(data)
                     }

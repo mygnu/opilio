@@ -11,8 +11,8 @@ fn should_fail_with_invalid_pair() {
         fan1_rpm: f32::MAX,
         fan2_rpm: f32::MAX,
         fan3_rpm: f32::MAX,
-        liquid_temp: f32::MAX,
-        liquid_out_temp: f32::MAX,
+        coolant_temp: f32::MAX,
+        coolant_out_temp: f32::MAX,
         ambient_temp: f32::MAX,
     });
 
@@ -61,8 +61,8 @@ fn should_serde_stats_data() {
         fan1_rpm: 0.0,
         fan2_rpm: 1.0,
         fan3_rpm: 20.0,
-        liquid_temp: 23.0,
-        liquid_out_temp: 23.0,
+        coolant_temp: 23.0,
+        coolant_out_temp: 23.0,
         ambient_temp: 20.0,
     };
 
