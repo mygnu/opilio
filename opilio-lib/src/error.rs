@@ -1,7 +1,7 @@
-use defmt::Format;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Copy, Clone, Format, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
     Deserialize,
     FlashErase,
@@ -10,7 +10,7 @@ pub enum Error {
     SerialRead,
     SerialWrite,
     Serialize,
-    InvalidCmdDataPair,
+    InvalidMsgDataPair,
     Unknown,
     TempRead,
 }

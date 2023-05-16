@@ -2,64 +2,55 @@ use opilio_lib::*;
 
 #[test]
 fn should_fail_with_invalid_pair() {
-    let fan = FanSetting::new(Id::F2);
     let default_config = Config::default();
     let empty = DataRef::Empty;
     let config = DataRef::Config(&default_config);
-    let setting = DataRef::Setting(&fan);
+
     let stats = DataRef::Stats(&Stats {
         pump1_rpm: f32::MAX,
         fan1_rpm: f32::MAX,
         fan2_rpm: f32::MAX,
         fan3_rpm: f32::MAX,
-        liquid_temp: f32::MAX,
-        liquid_out_temp: f32::MAX,
+        coolant_temp: f32::MAX,
+        coolant_out_temp: f32::MAX,
         ambient_temp: f32::MAX,
     });
-    let id = DataRef::SettingId(&Id::P1);
+
     let response = DataRef::Result(&Response::Ok);
 
-    OTW::serialised_vec(Cmd::SaveConfig, empty.clone()).unwrap();
-    OTW::serialised_vec(Cmd::SaveConfig, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::SaveConfig, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::SaveConfig, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::SaveConfig, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::SaveConfig, empty.clone()).unwrap();
+    OTW::serialised_vec(Msg::SaveConfig, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::SaveConfig, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::SaveConfig, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::GetStats, empty.clone()).unwrap();
-    OTW::serialised_vec(Cmd::GetStats, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetStats, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetStats, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetStats, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetStats, empty.clone()).unwrap();
+    OTW::serialised_vec(Msg::GetStats, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetStats, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetStats, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::Config, empty.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Config, config.clone()).unwrap();
-    OTW::serialised_vec(Cmd::Config, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Config, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Config, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Config, empty.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Config, config.clone()).unwrap();
+    OTW::serialised_vec(Msg::Config, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Config, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::UploadSetting, empty.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::UploadSetting, setting.clone()).unwrap();
-    OTW::serialised_vec(Cmd::UploadSetting, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::UploadSetting, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::UploadSetting, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Ping, empty.clone()).unwrap();
+    OTW::serialised_vec(Msg::Ping, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Ping, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::Stats, empty.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Stats, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Stats, stats.clone()).unwrap();
-    OTW::serialised_vec(Cmd::Stats, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Stats, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Stats, empty.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Stats, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Stats, stats.clone()).unwrap();
+    OTW::serialised_vec(Msg::Stats, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::GetConfig, empty.clone()).unwrap();
-    OTW::serialised_vec(Cmd::GetConfig, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetConfig, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetConfig, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::GetConfig, response.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetConfig, empty.clone()).unwrap();
+    OTW::serialised_vec(Msg::GetConfig, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetConfig, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::GetConfig, response.clone()).unwrap_err();
 
-    OTW::serialised_vec(Cmd::Result, empty.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Result, config.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Result, stats.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Result, id.clone()).unwrap_err();
-    OTW::serialised_vec(Cmd::Result, response.clone()).unwrap();
+    OTW::serialised_vec(Msg::Result, empty.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Result, config.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Result, stats.clone()).unwrap_err();
+    OTW::serialised_vec(Msg::Result, response.clone()).unwrap();
     // consider a testing framework at this point
 }
 
@@ -70,18 +61,18 @@ fn should_serde_stats_data() {
         fan1_rpm: 0.0,
         fan2_rpm: 1.0,
         fan3_rpm: 20.0,
-        liquid_temp: 23.0,
-        liquid_out_temp: 23.0,
+        coolant_temp: 23.0,
+        coolant_out_temp: 23.0,
         ambient_temp: 20.0,
     };
 
-    let vec = OTW::serialised_vec(Cmd::Stats, DataRef::Stats(&stats)).unwrap();
+    let vec = OTW::serialised_vec(Msg::Stats, DataRef::Stats(&stats)).unwrap();
     println!("{:?}", vec);
     let otw = OTW::from_bytes(&vec).unwrap();
     assert_eq!(
         otw,
         OTW {
-            cmd: Cmd::Stats,
+            msg: Msg::Stats,
             data: Data::Stats(stats)
         }
     );
@@ -223,8 +214,32 @@ fn should_create_default_ok() {
     assert_eq!(
         otw,
         OTW {
-            cmd: Cmd::Result,
+            msg: Msg::Result,
             data: Data::Result(Response::Ok)
         }
     )
+}
+
+pub const MAX_DUTY_PERCENT: f32 = 100.0;
+pub const MIN_DUTY_PERCENT: f32 = 15.0; // 10% usually when a pwm fan starts to spin
+pub const MIN_TEMP: f32 = 15.0;
+pub const MAX_TEMP: f32 = 50.0;
+
+#[test]
+fn should_test_fixed() {
+    let max_duty_percent: Fixed = Fixed::from_bits(1600);
+    println!("MAX_DUTY_PERCENT: {:?}", max_duty_percent.to_bits());
+    assert_eq!(max_duty_percent, Fixed::from_num(MAX_DUTY_PERCENT));
+
+    let min_duty_percent: Fixed = Fixed::from_bits(240);
+    println!("MIN_DUTY_PERCENT: {:?}", min_duty_percent.to_bits());
+    assert_eq!(min_duty_percent, Fixed::from_num(MIN_DUTY_PERCENT));
+
+    let min_temp: Fixed = Fixed::from_bits(240);
+    println!("MIN_TEMP: {:?}", min_temp.to_bits());
+    assert_eq!(min_temp, Fixed::from_num(MIN_TEMP));
+
+    let max_temp: Fixed = Fixed::from_bits(800);
+    println!("MAX_TEMP: {:?}", max_temp.to_bits());
+    assert_eq!(max_temp, Fixed::from_num(MAX_TEMP));
 }

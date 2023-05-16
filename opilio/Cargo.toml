@@ -1,0 +1,61 @@
+[package]
+name = "opilio"
+version = "0.4.0"
+edition = "2021"
+description = "Opilio Pump/Fan controller"
+license = "GPL-3.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4", default-features = false }
+cubic_spline = "1.0"
+env_logger = "0.10"
+iced_aw = "0.5"
+iced_native = "0.10"
+log = "0.4"
+opilio-lib = { path = "../opilio-lib", features = ["std"]}
+plotters = { version = "0.3", default_features = false, features = [
+    "chrono",
+    "area_series",
+    "line_series",
+    "point_series",
+] }
+plotters-backend = "0.3"
+plotters-iced = "0.8"
+rand = "0.8"
+tray-icon = "0.5"
+
+[target."cfg(target_os=\"linux\")".dependencies]
+tao = { version = "0.19"}
+iced = { version = "0.9", default-features = false, features = ["canvas", "tokio", "glow"] }
+
+[target."cfg(target_os=\"windows\")".dependencies]
+iced = { version = "0.9", features = ["canvas", "tokio"] }
+
+[[bin]]
+name = "opilio"
+path = "src/main.rs"
+
+[build-dependencies]
+image = "0.24"
+
+
+[package.metadata.deb]
+maintainer = "Harry Gill <tech@gill.net.in>"
+copyright = "2023, Harry Gill <tech@gill.net.in>"
+license-file = ["../LICENSE", "2"]
+extended-description = """\
+Interface for Opilio Pup/Fan controller"""
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+    ["target/release/opilio-tui", "/usr/local/bin/", "755"],
+    ["../target/release/opilio-daemon", "/usr/local/bin/", "755"],
+    ["../target/release/opilio", "/usr/local/bin/", "755"],
+    ["../assets/opilio-daemon.service", "/etc/systemd/system/", "644"],
+    ["../README.md", "/usr/share/doc/opilio/README.md", "644"],
+    ["../LICENSE", "/usr/share/doc/opilio/LICENSE", "644"],
+]

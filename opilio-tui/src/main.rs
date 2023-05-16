@@ -82,7 +82,7 @@ fn run_app<B: Backend>(
     let mut last_tick = Instant::now();
     let mut prompt_tick = 0;
     loop {
-        terminal.draw(|f| ui(f, &app))?;
+        terminal.draw(|f| ui(f, app))?;
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -194,13 +194,11 @@ fn listen_tcp(bool: Arc<AtomicBool>) {
                     let b = bool.clone();
                     thread::spawn(move || {
                         let reader = BufReader::new(stream);
-                        for line in reader.lines() {
-                            if let Ok(line) = line {
-                                log::info!("{}", line);
-                                if line == QUIT {
-                                    b.store(true, Ordering::Relaxed);
-                                    return;
-                                }
+                        for line in reader.lines().flatten() {
+                            log::info!("{}", line);
+                            if line == QUIT {
+                                b.store(true, Ordering::Relaxed);
+                                return;
                             }
                         }
                     });
