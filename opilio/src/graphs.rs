@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, time::Duration};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 use iced::{
     alignment::{Horizontal, Vertical},
     widget::{
@@ -20,11 +20,12 @@ use plotters_iced::{Chart, ChartWidget};
 use crate::Message;
 
 const PLOT_LINE_COLOR_TEMP: RGBColor = RGBColor(50, 175, 255);
-const PLOT_LINE_COLOR_RPM: RGBColor = RGBColor(50, 255, 175);
+const PLOT_LINE_COLOR_FAN: RGBColor = RGBColor(50, 255, 175);
+const PLOT_LINE_COLOR_PUMP: RGBColor = RGBColor(255, 50, 175);
 const GRID_BOLD_COLOR: RGBAColor = RGBAColor(100, 100, 100, 0.5);
 
 pub struct MonitoringData {
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: DateTime<Local>,
     pub pump_rpm: f32,
     pub f1_rpm: f32,
     pub f2_rpm: f32,
@@ -57,7 +58,7 @@ impl Default for ChartGroup {
                 2000.0,
                 4000.0,
                 "RPM".to_owned(),
-                PLOT_LINE_COLOR_RPM.mix(0.20),
+                PLOT_LINE_COLOR_PUMP.mix(0.20),
             ),
             f1_rpm_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
@@ -65,7 +66,7 @@ impl Default for ChartGroup {
                 FAN_MIN_RPM,
                 FAN_MAX_RPM,
                 "RPM".to_owned(),
-                PLOT_LINE_COLOR_RPM.mix(0.20),
+                PLOT_LINE_COLOR_FAN.mix(0.20),
             ),
             f2_rpm_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
@@ -73,7 +74,7 @@ impl Default for ChartGroup {
                 FAN_MIN_RPM,
                 FAN_MAX_RPM,
                 "RPM".to_owned(),
-                PLOT_LINE_COLOR_RPM.mix(0.20),
+                PLOT_LINE_COLOR_FAN.mix(0.20),
             ),
             f3_rpm_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
@@ -81,7 +82,7 @@ impl Default for ChartGroup {
                 FAN_MIN_RPM,
                 FAN_MAX_RPM,
                 "RPM".to_owned(),
-                PLOT_LINE_COLOR_RPM.mix(0.20),
+                PLOT_LINE_COLOR_FAN.mix(0.20),
             ),
             ambient_temp_chart: MonitoringChart::new(
                 Vec::new().into_iter(),
@@ -156,14 +157,14 @@ struct MonitoringChart {
     max: f32,
     unit: String,
     cache: Cache,
-    data_points: VecDeque<(DateTime<Utc>, f32)>,
+    data_points: VecDeque<(DateTime<Local>, f32)>,
     limit: Duration,
     color: RGBAColor,
 }
 
 impl MonitoringChart {
     fn new(
-        data: impl Iterator<Item = (DateTime<Utc>, f32)>,
+        data: impl Iterator<Item = (DateTime<Local>, f32)>,
         title: String,
         min: f32,
         max: f32,
@@ -183,7 +184,7 @@ impl MonitoringChart {
         }
     }
 
-    fn push_data(&mut self, time: DateTime<Utc>, value: f32) {
+    fn push_data(&mut self, time: DateTime<Local>, value: f32) {
         let cur_ms = time.timestamp_millis();
         if value > self.max {
             self.max = (value - self.min) * 0.05 + value;
@@ -288,12 +289,12 @@ impl Chart<Message> for MonitoringChart {
         let newest_time = self
             .data_points
             .front()
-            .unwrap_or(&(chrono::DateTime::<Utc>::MIN_UTC, 0.0))
+            .unwrap_or(&(Default::default(), 0.0))
             .0;
         let oldest_time = self
             .data_points
             .back()
-            .unwrap_or(&(chrono::DateTime::<Utc>::MIN_UTC, 0.0))
+            .unwrap_or(&(Default::default(), 0.0))
             .0;
 
         let hover_index = calc_hover_index(

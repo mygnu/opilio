@@ -1,6 +1,6 @@
 [package]
 name = "opilio-tui"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["Harry Gill <tech@gill.net.in>"]
 description = "TUI interface for opilio Pump/Fan controller"
@@ -23,21 +23,3 @@ tui = "0.19"
 [[bin]]
 name = "opilio-tui"
 path = "src/main.rs"
-
-[package.metadata.deb]
-maintainer = "Harry Gill <tech@gill.net.in>"
-copyright = "2022, Harry Gill <tech@gill.net.in>"
-license-file = ["../LICENSE.md", "2"]
-extended-description = """\
-Terminal Interface for Opilio Pup/Fan controller"""
-depends = "$auto"
-section = "utility"
-priority = "optional"
-assets = [
-    ["target/release/opilio-tui", "/usr/local/bin/", "755"],
-    ["../opilio-daemon/target/release/opilio-daemon", "/usr/local/bin/", "755"],
-    ["../opilio-gui/target/release/opilio-gui", "/usr/local/bin/", "755"],
-    ["../assets/opilio-daemon.service", "/etc/systemd/system/", "644"],
-    ["../assets/config.json", "/etc/opilio/config.json", "766"],
-    ["../README.md", "/usr/share/doc/opilio/README.md", "644"],
-]

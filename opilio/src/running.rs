@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use chrono::Utc;
+use chrono::Local;
 use iced::{
     alignment,
     widget::{
@@ -69,7 +69,7 @@ impl RunningState {
                 match self.opilio_serial.get_stats() {
                     Ok(stats) => {
                         let data = MonitoringData {
-                            timestamp: Utc::now(),
+                            timestamp: Local::now(),
                             pump_rpm: stats.pump1_rpm,
                             f1_rpm: stats.fan1_rpm,
                             f2_rpm: stats.fan2_rpm,

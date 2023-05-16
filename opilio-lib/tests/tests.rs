@@ -1,5 +1,3 @@
-use std::ops::Mul;
-
 use opilio_lib::*;
 
 #[test]
