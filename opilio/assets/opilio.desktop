@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Opilio
+GenericName=Opilio Controller
+Comment=GUI for smartest water cooling hardware
+Exec=opilio
+Icon=opilio
+StartupNotify=true
+StartupWMClass=opilio
+Terminal=false
+Type=Application
+Categories=System;Settings;Utility;
+Keywords=opilio;control;system;hardware;

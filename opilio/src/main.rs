@@ -73,7 +73,7 @@ fn main() {
         antialiasing: true,
         default_font: Some(include_bytes!("../fonts/notosans-regular.ttf")),
         window: iced::window::Settings {
-            size: (550, 350),
+            size: (800, 600),
             resizable: true,
             decorations: true,
             icon: Some(
@@ -178,7 +178,7 @@ impl HomeState {
                     )
                     .width(Length::Fixed(100.0))
                     .on_press(Message::CloseModal),
-                ).push(iced::widget::horizontal_rule(20)).push(Text::new("If you are unsure which port belongs to the controller, replug it and see which port temporarily disappears")),
+                ).push(iced::widget::horizontal_rule(20)).push(Text::new("If running under linux make sure your user is in the dialout group.")),
             )
             .max_width(300.0)
             .on_close(Message::CloseModal)

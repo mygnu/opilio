@@ -53,9 +53,20 @@ section = "utility"
 priority = "optional"
 assets = [
     ["target/release/opilio-tui", "/usr/local/bin/", "755"],
+    ["assets/icons/opilio_16x16.png", "/usr/share/icons/hicolor/16x16/apps/opilio.png", "644"],
+    ["assets/icons/opilio_22x22.png", "/usr/share/icons/hicolor/22x22/apps/opilio.png", "644"],
+    ["assets/icons/opilio_24x24.png", "/usr/share/icons/hicolor/24x24/apps/opilio.png", "644"],
+    ["assets/icons/opilio_32x32.png", "/usr/share/icons/hicolor/32x32/apps/opilio.png", "644"],
+    ["assets/icons/opilio_48x48.png", "/usr/share/icons/hicolor/48x48/apps/opilio.png", "644"],
+    ["assets/icons/opilio_64x64.png", "/usr/share/icons/hicolor/64x64/apps/opilio.png", "644"],
+    ["assets/icons/opilio_72x72.png", "/usr/share/icons/hicolor/72x72/apps/opilio.png", "644"],
+    ["assets/icons/opilio_96x96.png", "/usr/share/icons/hicolor/96x96/apps/opilio.png", "644"],
+    ["assets/icons/opilio_128x128.png", "/usr/share/icons/hicolor/128x128/apps/opilio.png", "644"],
+    ["assets/icons/opilio_256x256.png", "/usr/share/icons/hicolor/256x256/apps/opilio.png", "644"],
+    ["assets/opilio.desktop", "/usr/share/applications/", "644"],
     ["../target/release/opilio-daemon", "/usr/local/bin/", "755"],
     ["../target/release/opilio", "/usr/local/bin/", "755"],
-    ["../assets/opilio-daemon.service", "/etc/systemd/system/", "644"],
+    ["../opilio-daemon/assets/opilio-daemon.service", "/etc/systemd/system/", "644"],
     ["../README.md", "/usr/share/doc/opilio/README.md", "644"],
     ["../LICENSE", "/usr/share/doc/opilio/LICENSE", "644"],
 ]

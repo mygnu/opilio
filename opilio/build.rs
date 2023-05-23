@@ -1,9 +1,9 @@
 fn main() {
-    println!("cargo:rerun-if-changed=assets/icon_64x64.png");
+    println!("cargo:rerun-if-changed=/assets/icons/opilio_64x64.png");
 
     let image = image::open(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/assets/icon_64x64.png"
+        "/assets/icons/opilio_64x64.png"
     ))
     .expect("Failed to open icon path")
     .into_rgba8()
